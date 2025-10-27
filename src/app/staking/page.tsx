@@ -6,6 +6,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { RequireChain } from '@/guards/RequireChain';
 import { getTokenAddress, getStakingAddress } from '@/contracts/addresses';
 import { ApproveStakeButton } from '@/features/staking/components/ApproveStakeButton';
+import { APYDisplay } from '@/components/APYDisplay';
 
 export default function StakingPage() {
   const chainId = useChainId();
@@ -48,11 +49,16 @@ export default function StakingPage() {
           <p style={{
             textAlign: 'center',
             color: 'rgba(255, 255, 255, 0.7)',
-            marginBottom: '40px',
+            marginBottom: '30px',
             fontSize: '16px'
           }}>
             Earn rewards by staking your tokens in our secure protocol
           </p>
+
+          {/* APY Display */}
+          <div style={{ marginBottom: '30px' }}>
+            <APYDisplay tokenSymbol="STAR" showDetails={true} />
+          </div>
 
           <div style={{ marginBottom: '30px' }}>
             <ConnectButton />

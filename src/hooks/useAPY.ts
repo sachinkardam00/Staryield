@@ -1,0 +1,68 @@
+'use client';
+
+import { useQuery } from '@tanstack/react-query';
+import { useChainId } from 'wagmi';
+import { pancakeSwapService, APYData } from '@/services/pancakeswap';
+import { getTokenAddress } from '@/contracts/addresses';
+
+interface UseAPYOptions {
+  tokenSymbol?: string;
+  refetchInterval?: number;
+  enabled?: boolean;
+}
+
+export function useAPY(options: UseAPYOptions = {}) {
+  const {
+    tokenSymbol = 'STAR',
+    refetchInterval = 30000, // Refetch every 30 seconds
+    enabled = true,
+  } = options;
+
+  const chainId = useChainId();
+  const tokenAddress = getTokenAddress(chainId);
+
+  return useQuery<APYData, Error>({
+    queryKey: ['apy', tokenAddress, tokenSymbol, chainId],
+    queryFn: async () => {
+      if (!tokenAddress || tokenAddress === '0x0000000000000000000000000000000000000000') {
+        // Return mock data if no real token address is configured
+        return pancakeSwapService.getMockStakingAPY(tokenSymbol);
+      }
+      
+      return await pancakeSwapService.getTokenAPY(tokenAddress, tokenSymbol);
+    },
+    enabled,
+    refetchInterval,
+    staleTime: 25000, // Consider data stale after 25 seconds
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+}
+
+// Hook for multiple tokens APY
+export function useMultipleAPY(tokens: Array<{ address: string; symbol: string }>) {
+  return useQuery<Record<string, APYData>, Error>({
+    queryKey: ['multiple-apy', tokens],
+    queryFn: async () => {
+      const results: Record<string, APYData> = {};
+      
+      await Promise.all(
+        tokens.map(async (token) => {
+          try {
+            const apy = await pancakeSwapService.getTokenAPY(token.address, token.symbol);
+            results[token.symbol] = apy;
+          } catch (error) {
+            console.error(`Failed to fetch APY for ${token.symbol}:`, error);
+            results[token.symbol] = pancakeSwapService.getMockStakingAPY(token.symbol);
+          }
+        })
+      );
+      
+      return results;
+    },
+    enabled: tokens.length > 0,
+    refetchInterval: 60000, // Refetch every minute for multiple tokens
+    staleTime: 50000,
+    retry: 2,
+  });
+}

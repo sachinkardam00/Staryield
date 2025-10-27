@@ -1,6 +1,7 @@
 'use client';
 
 import { CustomConnectButton } from '@/components/CustomConnectButton';
+import { APYStats } from '@/components/APYStats';
 import Link from 'next/link';
 import { useEffect } from 'react';
 
@@ -53,7 +54,7 @@ export default function HomePage() {
             </Link>
             <ul className="main-menu clearfix">
               <li><Link href="/staking" className="link">Stake</Link></li>
-              <li><a href="#" className="link">Affiliate</a></li>
+              <li><Link href="/apy" className="link">APY</Link></li>
               <li><a href="#" className="link">Guide</a></li>
               <li><a href="#" className="link">Roadmap</a></li>
               <li><a href="#" className="link">Documentation</a></li>
@@ -89,6 +90,7 @@ export default function HomePage() {
             </div>
             <div className="arb-stats">
               <ul className="clearfix">
+                <APYStats />
                 <li>
                   <h4>Total value locked</h4>
                   <h3>$<span className="animate-number" data-value="1425422">1,425,422</span></h3>

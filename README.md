@@ -5,6 +5,7 @@ A modern, secure staking platform built on Binance Smart Chain with Next.js and 
 ## 🚀 Features
 
 - **Clean Staking Flow**: Simple approve → stake workflow
+- **Real-time APY Calculation**: Live Annual Percentage Yield powered by PancakeSwap
 - **Multi-Network Support**: BSC Mainnet and Testnet
 - **Beautiful UI**: Modern, responsive design with space theme
 - **RainbowKit Integration**: Premium wallet connection experience
@@ -21,21 +22,25 @@ A modern, secure staking platform built on Binance Smart Chain with Next.js and 
 ## 🔧 Setup
 
 1. **Clone and install dependencies**:
+
    ```bash
    npm install
    ```
 
 2. **Configure environment variables**:
+
    ```bash
    cp .env.example .env.local
    ```
-   
+
    Update `.env.local` with your:
+
    - `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` (get from https://cloud.walletconnect.com/)
    - Custom RPC endpoints (optional)
 
 3. **Update contract addresses**:
    Edit `src/contracts/addresses.ts` with your:
+
    - Token contract addresses (BSC Mainnet & Testnet)
    - Staking contract addresses (BSC Mainnet & Testnet)
 
@@ -52,9 +57,13 @@ Visit http://localhost:8080 to see your app!
 src/
 ├── app/
 │   ├── staking/page.tsx          # Main staking interface
+│   ├── apy/page.tsx              # APY analytics dashboard
 │   ├── layout.tsx                # App layout with providers
 │   └── page.tsx                  # Landing page
-├── components/                   # Reusable UI components
+├── components/
+│   ├── APYDisplay.tsx            # APY display component
+│   ├── APYDashboard.tsx          # Multi-token APY dashboard
+│   └── APYStats.tsx              # Homepage APY stats
 ├── contracts/
 │   └── addresses.ts              # Smart contract addresses
 ├── features/staking/
@@ -62,6 +71,10 @@ src/
 │       └── ApproveStakeButton.tsx # Core staking logic
 ├── guards/
 │   └── RequireChain.tsx          # Network validation
+├── hooks/
+│   └── useAPY.ts                 # APY data fetching hooks
+├── services/
+│   └── pancakeswap.ts            # PancakeSwap API integration
 └── lib/
     └── wagmi.ts                  # Wagmi configuration
 ```
@@ -69,11 +82,20 @@ src/
 ## 🎯 How to Use
 
 1. **Connect Wallet**: Click "Connect Wallet" on the staking page
-2. **Network Check**: Ensure you're on BSC or BSC Testnet
-3. **Enter Amount**: Input the number of tokens to stake
-4. **Approve**: First transaction approves token spending
-5. **Stake**: Second transaction stakes your tokens
-6. **Earn Rewards**: Start earning from your staked tokens!
+2. **View APY**: Check current yields on `/apy` page or staking interface
+3. **Network Check**: Ensure you're on BSC or BSC Testnet
+4. **Enter Amount**: Input the number of tokens to stake
+5. **Approve**: First transaction approves token spending
+6. **Stake**: Second transaction stakes your tokens
+7. **Earn Rewards**: Start earning from your staked tokens!
+
+## 💰 APY Features
+
+- **Real-time Calculation**: Live APY data from PancakeSwap pools
+- **Multiple Tokens**: Support for STAR, BNB, CAKE, and more
+- **Auto-refresh**: Data updates every 30 seconds
+- **Detailed Analytics**: APR, TVL, and 24h volume metrics
+- **Fallback Data**: Mock APY when real data unavailable
 
 ## 🔒 Security Features
 
