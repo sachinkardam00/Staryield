@@ -52,7 +52,7 @@ export default function HomePage() {
               <img src="/images/logo.svg" alt="StarYield" />
             </Link>
             <ul className="main-menu clearfix">
-              <li><a href="#" className="link">Stake</a></li>
+              <li><Link href="/staking" className="link">Stake</Link></li>
               <li><a href="#" className="link">Affiliate</a></li>
               <li><a href="#" className="link">Guide</a></li>
               <li><a href="#" className="link">Roadmap</a></li>
@@ -83,7 +83,7 @@ export default function HomePage() {
               <h1>Navigate the Financial Cosmos <br/>with StarYield Staking</h1>
               <p>Journey through the financial galaxy with StarYield&apos;s premier staking experience. Unlock the potential of your digital assets as you traverse through a universe of rewards. With StarYield, your crypto ventures beyond the ordinary, charting a course through the stars of DeFi space. Secure.</p>
               <div className="button-set text-center">
-                <Link href="/dashboard" className="btn btn-skyblue normal">Begin Staking</Link>
+                <Link href="/staking" className="btn btn-skyblue normal">Begin Staking</Link>
                 <a href="#" className="btn btn-green normal" style={{marginLeft:'10px'}}>read Document</a>
               </div>
             </div>

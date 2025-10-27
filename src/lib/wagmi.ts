@@ -56,9 +56,10 @@ const bscTestnet = defineChain({
 
 export const config = getDefaultConfig({
   appName: 'StarYield Finance',
-  projectId: '6315b8b1e9c248cd7ecdf86cee204f69',
+  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '6315b8b1e9c248cd7ecdf86cee204f69',
   chains: [bscMainnet, bscTestnet],
   ssr: true,
 });
 
 export { bscMainnet, bscTestnet };
+export const chains = [bscMainnet, bscTestnet] as const;
