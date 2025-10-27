@@ -1,0 +1,20 @@
+/* Minimal global styles for faster compilation */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Override Tailwind styles to preserve StarYield design */
+* {
+  box-sizing: border-box;
+}
+
+/* Make sure RainbowKit modal appears on top */
+[data-rk] {
+  z-index: 999999 !important;
+}
+
+/* Critical CSS only - other styles loaded via link tags */
+body {
+  margin: 0;
+  padding: 0;
+}

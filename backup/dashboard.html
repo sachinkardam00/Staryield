@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>StarYield Finance</title>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<!--fonts-->
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+	<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+	<link rel="stylesheet" href="css/all.css">
+	<link rel="stylesheet" type="text/css" href="css/style.css">
+	<link rel="stylesheet" type="text/css" href="css/admin.css">
+	<link rel="shortcut icon" href="images/favicon.png">
+	<!-- js -->
+	<script type="text/javascript" src="js/jquery.js"></script>	
+	<script type="text/javascript" src="js/bootstrap.bundle.js"></script>
+</head>
+<body class="admin">
+<!--start admin header-->
+<div class="admin-header">
+   <div class="hesder-video">
+	   <video autoplay="" muted="" loop="">
+		  <source src="images/galaxy-bg-2.mp4" type="video/mp4">
+	   </video>
+   </div>
+   <header>
+      <div class="container">
+	     <div class="header-container d-flex justify-content-between align-items-center">
+		    <a href="#" class="logo"><img src="images/logo.png"></a>
+			<ul class="main-menu clearfix">
+			   <li class="active"><a href="#" class="link">Stake</a></li>
+			   <li><a href="#" class="link">Affiliate</a></li>
+			   <li><a href="#" class="link">History</a></li>
+			   <li><a href="#" class="link">Referral Banners</a></li>
+			   <li><a href="#" class="link">Documentation</a></li>
+			   <li class="menu-enter"><a href="#" class="btn btn-blue ">Enter App</a></li>
+			</ul>
+			<ul class="header-buttons clearfix">
+			   <li class="switch d-flex align-items-center">
+			      <a class="active" href="#"><img src="images/bnb.png"/>BNB</a>
+				  <a href="#"><img src="images/trx.png"/>TRX</a>
+				  <a href="#"><img src="images/usdt-logo.png"/>USDT</a>
+			   </li>
+			   <li><button class="btn btn-green">Connect now</button></li>
+			   <li class="menu-toggle"><a href="javascript:void(0);" id="menu-toggle" class="btn btn-skyblue"><i class="fas fa-bars"></i></a></li>
+			</ul>
+			<script>
+			jQuery(function($){
+			   $('#menu-toggle').click(function(){
+			      $('.main-menu').slideToggle(200);
+				  if ($(this).find('i').hasClass('fa-bars')) {
+				     $(this).find('i').removeClass('fa-bars').addClass('fa-times');
+				  } else {
+				     $(this).find('i').removeClass('fa-times').addClass('fa-bars');
+				  }
+			   });
+			});
+			</script>
+		 </div>
+	  </div>
+   </header>
+</div>
+<!--end admin header-->
+<!--dashboard main-->
+<div class="top-stats">
+   <div class="container">
+      <div class="row">
+	      <div class="col-lg-12">
+		     <ul class="features-menu d-flex justify-content-center">
+			    <li>
+				   <a href="#">Cross-chain</a>
+				   <div class="feature-pop">
+				      <h4>Interstellar Transfers (Coming Soon)</h4>
+					  <p>To maximize the potential of our platform, we are working towards facilitating operations across multiple blockchain networks. </p>
+				   </div>
+				</li>
+				<li>
+				   <a href="#">Governance</a>
+				   <div class="feature-pop">
+				      <h4>Staryield Governance (Coming Soon)</h4>
+					  <p>In the spirit of decentralized finance, we plan to introduce a governance token. </p>
+				   </div>
+				</li>
+				<li>
+				   <a href="#">Star Art Vault</a>
+				   <div class="feature-pop">
+				      <h4>NFT Staking(Coming Soon)</h4>
+					  <p>In keeping up with the explosive growth of Non-Fungible Tokens (NFTs), we aim to incorporate NFT staking into our platform. </p>
+				   </div>
+				</li>
+				<li>
+				   <a href="#">StarYieldSwap</a>
+				   <div class="feature-pop">
+				      <h4>DEX(Coming Soon)</h4>
+					  <p>We envision establishing our own dedicated DeFi exchange, StarYieldSwap. This platform will facilitate seamless swaps between different cryptocurrencies, driving further utility and making asset management even more flexible for our users.</p>
+				   </div>
+				</li>
+				<li>
+				   <a href="#">Space Radar</a>
+				   <div class="feature-pop">
+				      <h4>Advanced Portfolio Analytics (Coming Soon)</h4>
+					  <p>To provide our users with deep insights into their investments, we aim to develop an advanced portfolio analytics tool.</p>
+				   </div>
+				</li>
+				<li>
+				   <a href="#">Comet Club</a>
+				   <div class="feature-pop">
+				      <h4>Loyalty and Rewards Program (Coming Soon)</h4>
+					  <p>Our plan includes the launch of a loyalty and rewards program to show appreciation for our loyal users. </p>
+				   </div>
+				</li>
+			 </ul>
+		  </div>
+	      <div class="col-lg-8">
+		     <div class="card-box">
+			    <div class="card-box-title d-flex align-items-center justify-content-between">
+				   <h3>Overall Portfolio</h3>
+				   <div>
+				     <a href="#" class="btn btn-green "><i class="fa-solid fa-square-arrow-up-right"></i> Verified Contract</a>
+				     <a href="#" class="btn btn-blue "><i class="fa-solid fa-headset"></i> Support</a>
+				   </div>
+				</div>
+				<ul class="top-stats-ul clearfix">
+				   <li>
+				     <h4>Total Staked</h4>
+					 <h3>BNB <span class="animate-number" data-value="1400">1400</span></h3>
+				   </li>
+				   <li>
+				     <h4>Total Earned</h4>
+					 <h3>BNB <span class="animate-number" data-value="1000">1000</span></h3>
+				   </li>
+				   <li>
+				     <h4>Active Staking</h4>
+					 <h3>BNB <span class="animate-number" data-value="15000">15,000</span></h3>
+				   </li>
+				   <li>
+				     <h4>Withdrawn Earning</h4>
+					 <h3>BNB <span class="animate-number" data-value="11000">11,000</span></h3>
+				   </li>
+				</ul>
+			 </div>
+		  </div>
+		  <div class="col-lg-4">
+		     <div class="card-box">
+			    <div class="claim-box d-flex align-items-center">
+				   <div class="claim-logo"><img src="images/bnb.png"/></div>
+				   <div class="claim-box-details">
+				      <h4>Unclaimed Earning</h4>
+					  <h3><b class="ticker">BNB</b> <span class="animate-number" data-value="11000">11,000</span></h3>
+					  <button class="btn btn-blue "><i class="fa-regular fa-hand-pointer"></i> Claim</a>
+				   </div>
+				</div>
+			 </div>
+		  </div>
+	  </div>
+   </div>
+</div>
+<!--end dashboard top-->
+<!--start dashboard body-->
+<div class="dashboard-body">
+   <div class="container">
+      <div class="row">
+	      <div class="col-lg-8">
+		     <div class="staking-container">
+			    <div class="staking-tabs tabs">
+				   <ul class="tab-links clearfix">
+				      <li class="active"><a href="#tab1">Comet Tier</a></li>
+					  <li class="tab2"><a href="#tab2">Meteor Tier </a></li>
+					  <li class="tab3"><a href="#tab3">Supernova Tier </a></li>
+				   </ul>
+				   <div class="tab-content">
+				      <div class="tab active" id="tab1">
+					     <!--staking wrap-->
+						 <div class="staking-wrap">
+						    <div class="staking-top">
+							    <div class="s-title"><i>1</i><span>Comet Tier</span><b>Stake $BNB</b></div>
+								<div class="s-data">
+								   <h4>You Staked</h4>
+								   <h5>0 <b>BNB</b></h5>
+								</div>
+								<div class="s-data">
+								   <h4>APY/APR</h4>
+								   <h5>1095%</h5>
+								</div>
+								<div class="s-data">
+								   <h4>Locked Period</h4>
+								   <h5>14 <b>Days</b></h5>
+								</div>
+								<div class="s-data">
+								   <h4>Min Investment</h4>
+								   <h5>0.1 <b>BNB</b></h5>
+								</div>
+								<div class="s-data">
+								   <h4>Daily</h4>
+								   <h5>3%</h5>
+								</div>
+							</div>
+							<div class="staking-field">
+							   <div class="staking-form">
+							      <div class="token-ticker"><img src="images/bnb.png">&nbsp; BNB</div>
+								  <div class="input-box">
+								     <input type="text" placeholder="0" fdprocessedid="4d1kb">
+									 <span class="max">Max</span>
+								  </div>
+							   </div>
+							   <div class="staking-titles">
+							      
+								  <div id="balance">Balance: 100 BNB</div>
+								  <div>Enter Amount Above</div>
+							   </div>
+							   <div class="staking-button half clearfix">
+							     <div class="s-button">
+								    <button class="btn btn-white normal full" fdprocessedid="0hthqb">Approve</button>
+								 </div>
+								 <div class="s-button">
+								    <button class="btn btn-skyblue normal full" fdprocessedid="vxih4wh">Stake</button>
+								 </div>
+							  </div>
+							</div>
+						 </div>
+						 <!--end staking wrap-->
+					  </div>
+					  <div class="tab" id="tab2">
+					     <!--staking wrap-->
+						 <div class="staking-wrap">
+						    <div class="staking-top">
+							    <div class="s-title"><i>2</i><span>Meteor Tier</span><b>Stake $BNB</b></div>
+								<div class="s-data">
+								   <h4>You Staked</h4>
+								   <h5>0 <b>BNB</b></h5>
+								</div>
+								<div class="s-data">
+								   <h4>APY/APR</h4>
+								   <h5>1825%</h5>
+								</div>
+								<div class="s-data">
+								   <h4>Locked Period</h4>
+								   <h5>21 <b>Days</b></h5>
+								</div>
+								<div class="s-data">
+								   <h4>Min Investment</h4>
+								   <h5>1 <b>BNB</b></h5>
+								</div>
+								<div class="s-data">
+								   <h4>Daily</h4>
+								   <h5>5%</h5>
+								</div>
+							</div>
+							<div class="staking-field">
+							   <div class="staking-form">
+							      <div class="token-ticker"><img src="images/bnb.png">&nbsp; BNB</div>
+								  <div class="input-box">
+								     <input type="text" placeholder="0" fdprocessedid="4d1kb">
+									 <span class="max">Max</span>
+								  </div>
+							   </div>
+							   <div class="staking-titles">
+							      
+								  <div id="balance">Balance: 100 BNB</div>
+								  <div>Enter Amount Above</div>
+							   </div>
+							   <div class="staking-button half clearfix">
+							     <div class="s-button">
+								    <button class="btn btn-white normal full" fdprocessedid="0hthqb">Approve</button>
+								 </div>
+								 <div class="s-button">
+								    <button class="btn btn-skyblue normal full" fdprocessedid="vxih4wh">Stake</button>
+								 </div>
+							  </div>
+							</div>
+						 </div>
+						 <!--end staking wrap-->
+					  </div>
+					  <div class="tab" id="tab3">
+					     <!--staking wrap-->
+						 <div class="staking-wrap">
+						    <div class="staking-top">
+							    <div class="s-title"><i>3</i><span>Supernova  Tier</span><b>Stake $BNB</b></div>
+								<div class="s-data">
+								   <h4>You Staked</h4>
+								   <h5>0 <b>BNB</b></h5>
+								</div>
+								<div class="s-data">
+								   <h4>APY/APR</h4>
+								   <h5>2555%</h5>
+								</div>
+								<div class="s-data">
+								   <h4>Locked Period</h4>
+								   <h5>30 <b>Days</b></h5>
+								</div>
+								<div class="s-data">
+								   <h4>Min Investment</h4>
+								   <h5>5 <b>BNB</b></h5>
+								</div>
+								<div class="s-data">
+								   <h4>Daily</h4>
+								   <h5>7%</h5>
+								</div>
+							</div>
+							<div class="staking-field">
+							   <div class="staking-form">
+							      <div class="token-ticker"><img src="images/bnb.png">&nbsp; BNB</div>
+								  <div class="input-box">
+								     <input type="text" placeholder="0" fdprocessedid="4d1kb">
+									 <span class="max">Max</span>
+								  </div>
+							   </div>
+							   <div class="staking-titles">
+							      
+								  <div id="balance">Balance: 100 BNB</div>
+								  <div>Enter Amount Above</div>
+							   </div>
+							   <div class="staking-button half clearfix">
+							     <div class="s-button">
+								    <button class="btn btn-white normal full" fdprocessedid="0hthqb">Approve</button>
+								 </div>
+								 <div class="s-button">
+								    <button class="btn btn-skyblue normal full" fdprocessedid="vxih4wh">Stake</button>
+								 </div>
+							  </div>
+							</div>
+						 </div>
+						 <!--end staking wrap-->
+					  </div>
+				   </div>
+				</div>
+			 </div>
+		  </div>
+		  <div class="col-lg-4">
+		     <h3 class="box-o-title">Loyalty Points (Stars)</h3>
+			 <div class="card-box point-1">
+			    <ul class="stat-list">
+				   <li class="d-flex align-items-center">
+				       <div class="stat-icon"><img src="images/stat-icon-1.png"/></div>
+				       <div class="stat-details">
+					      <h4>Total Stars</h4>
+						  <h3>14,120</h3>
+					   </div>
+				   </li>
+				   <li class="d-flex align-items-center">
+				       <div class="stat-icon"><img src="images/stat-icon-2.png"/></div>
+				       <div class="stat-details">
+					      <h4>Stars earned by staking</h4>
+						  <h3>5000</h3>
+					   </div>
+				   </li>
+				   <li class="d-flex align-items-center">
+				       <div class="stat-icon"><img src="images/stat-icon-3.png"/></div>
+				       <div class="stat-details">
+					      <h4>Stars earned by friend's staking</h4>
+						  <h3>8000</h3>
+					   </div>
+				   </li>
+				   <li class="d-flex align-items-center">
+				       <div class="stat-icon"><img src="images/stat-icon-4.png"/></div>
+				       <div class="stat-details">
+					      <h4>Referrals</h4>
+						  <h3>1800</h3>
+					   </div>
+				   </li>
+				</ul>
+			 </div>
+		  </div>
+	  </div>
+   </div>
+</div>
+<!--end dashboard body-->
+<script>
+var jq = $.noConflict();
+
+jq(document).ready(function() {
+  jq('.animate-number').each(function() {
+    var $this = jq(this),
+        countTo = $this.attr('data-value'),
+        countFrom = 0,
+        duration = 3000;
+
+    jq({ countNum: countFrom }).animate({
+      countNum: countTo
+    },
+    {
+      duration: duration,
+      easing: 'linear',
+      step: function() {
+        $this.text(commaSeparateNumber(Math.floor(this.countNum)));
+      },
+      complete: function() {
+        $this.text(commaSeparateNumber(this.countNum));
+      }
+    });
+  });
+});
+
+function commaSeparateNumber(val) {
+  while (/(\d+)(\d{3})/.test(val.toString())) {
+    val = val.toString().replace(/(\d+)(\d{3})/, '$1' + ',' + '$2');
+  }
+  return val;
+}
+jQuery(function($){
+	 jQuery('.tabs .tab-links a').on('click', function(e)  {
+        var currentAttrValue = jQuery(this).attr('href');
+ 
+        // Show/Hide Tabs
+        jQuery('.tabs ' + currentAttrValue).slideDown(400).siblings().slideUp(400);
+ 
+        // Change/remove current tab to active
+        jQuery(this).parent('li').addClass('active').siblings().removeClass('active');
+ 
+        e.preventDefault();
+    }); 
+}); 
+</script>
+</body>
+</html>
