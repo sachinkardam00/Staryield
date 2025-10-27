@@ -14,7 +14,7 @@ interface UseAPYOptions {
 export function useAPY(options: UseAPYOptions = {}) {
   const {
     tokenSymbol = 'STAR',
-    refetchInterval = 30000, // Refetch every 30 seconds
+    refetchInterval = 25000, // Refetch every 25 seconds as requested
     enabled = true,
   } = options;
 
@@ -33,7 +33,7 @@ export function useAPY(options: UseAPYOptions = {}) {
     },
     enabled,
     refetchInterval,
-    staleTime: 25000, // Consider data stale after 25 seconds
+    staleTime: 20000, // Consider data stale after 20 seconds
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
