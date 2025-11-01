@@ -1,7 +1,7 @@
 'use client';
 
-import { CustomConnectButton } from '@/components/CustomConnectButton';
-import { FastLink } from '@/components/FastLink';
+import { CustomConnectButton } from '@/components/UI/CustomConnectButton';
+import { FastLink } from '@/components/Navigation/FastLink';
 import { useAccount, useBalance, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
 import { useAPY } from '@/hooks/useAPY';
 import { parseEther, formatEther } from 'viem';

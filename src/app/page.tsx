@@ -1,7 +1,7 @@
 'use client';
 
-import { CustomConnectButton } from '@/components/CustomConnectButton';
-import { APYStats } from '@/components/APYStats';
+import { CustomConnectButton } from '@/components/UI/CustomConnectButton';
+import { APYStats } from '@/components/Dashboard/APYStats';
 import Link from 'next/link';
 import { useEffect } from 'react';
 

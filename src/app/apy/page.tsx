@@ -1,7 +1,7 @@
 'use client';
 
-import { APYDashboard } from '@/components/APYDashboard';
-import { APYDisplay } from '@/components/APYDisplay';
+import { APYDashboard } from '@/components/Dashboard/APYDashboard';
+import { APYDisplay } from '@/components/Dashboard/APYDisplay';
 import Link from 'next/link';
 
 export default function APYPage() {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CustomConnectButton } from '@/components/CustomConnectButton';
+import { CustomConnectButton } from '@/components/UI/CustomConnectButton';
 
 // Import all page components
 import HomePage from './page';

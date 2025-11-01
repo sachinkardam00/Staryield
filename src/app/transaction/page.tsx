@@ -1,6 +1,6 @@
 'use client';
 
-import { CustomConnectButton } from '@/components/CustomConnectButton';
+import { CustomConnectButton } from '@/components/UI/CustomConnectButton';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useAccount, usePublicClient } from 'wagmi';
