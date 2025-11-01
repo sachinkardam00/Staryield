@@ -37,20 +37,24 @@
 <div align="center">
 
 ### 🏠 Home Page
+
 ![Home Page](public/images/demo/home.png)
-*Navigate the Financial Cosmos with StarYield*
+_Navigate the Financial Cosmos with StarYield_
 
 ### 📊 Dashboard
+
 ![Dashboard](public/images/demo/dashboard.png)
-*Real-time staking overview with live APY updates*
+_Real-time staking overview with live APY updates_
 
 ### 💰 Staking Interface
+
 ![Staking](public/images/demo/staking.png)
-*Stake BNB with flexible tier system*
+_Stake BNB with flexible tier system_
 
 ### 📜 Transaction History
+
 ![Transactions](public/images/demo/transactions.png)
-*Complete transaction history powered by BSCScan API*
+_Complete transaction history powered by BSCScan API_
 
 </div>
 
@@ -60,16 +64,16 @@
 
 ### 🎯 Core Features
 
-| Feature | Description |
-|---------|-------------|
-| **🔐 Wallet Connect** | WalletConnect v2 & RainbowKit integration |
-| **💸 Flexible Staking** | Stake any amount above 0.1 BNB minimum |
-| **⚡ Custom Unstaking** | Unstake partial or full amounts |
-| **🎁 Real-time Rewards** | Rewards accumulate every second at 10% APY |
-| **📊 Live Portfolio** | Track staked amounts and earnings in real-time |
-| **📜 Transaction History** | Complete history via BSCScan API integration |
-| **🎨 Tier System** | Comet, Meteor, and Supernova tiers |
-| **💫 Instant Navigation** | Lightning-fast page transitions |
+| Feature                    | Description                                    |
+| -------------------------- | ---------------------------------------------- |
+| **🔐 Wallet Connect**      | WalletConnect v2 & RainbowKit integration      |
+| **💸 Flexible Staking**    | Stake any amount above 0.1 BNB minimum         |
+| **⚡ Custom Unstaking**    | Unstake partial or full amounts                |
+| **🎁 Real-time Rewards**   | Rewards accumulate every second at 10% APY     |
+| **📊 Live Portfolio**      | Track staked amounts and earnings in real-time |
+| **📜 Transaction History** | Complete history via BSCScan API integration   |
+| **🎨 Tier System**         | Comet, Meteor, and Supernova tiers             |
+| **💫 Instant Navigation**  | Lightning-fast page transitions                |
 
 ### 🚀 Advanced Features
 
@@ -93,7 +97,7 @@ graph TB
     E -->|Generates| F[Time-based Rewards 10% APY]
     B -->|Queries| G[BSCScan API]
     G -->|Returns| H[Transaction History]
-    
+
     style A fill:#667eea
     style D fill:#f093fb
     style E fill:#4facfe
@@ -127,22 +131,26 @@ graph TB
 <div align="center">
 
 ### Frontend
+
 ![Next.js](https://img.shields.io/badge/Next.js-15.1.4-black?style=flat-square&logo=next.js)
 ![React](https://img.shields.io/badge/React-18-blue?style=flat-square&logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat-square&logo=typescript)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.0-38bdf8?style=flat-square&logo=tailwind-css)
 
 ### Web3 Integration
+
 ![Wagmi](https://img.shields.io/badge/Wagmi-2.19.0-purple?style=flat-square)
 ![Viem](https://img.shields.io/badge/Viem-2.38.4-green?style=flat-square)
 ![RainbowKit](https://img.shields.io/badge/RainbowKit-2.2.0-ff385c?style=flat-square)
 
 ### Smart Contracts
+
 ![Solidity](https://img.shields.io/badge/Solidity-0.8.20-363636?style=flat-square&logo=solidity)
 ![Hardhat](https://img.shields.io/badge/Hardhat-2.22.18-yellow?style=flat-square)
 ![OpenZeppelin](https://img.shields.io/badge/OpenZeppelin-5.x-4e5ee4?style=flat-square)
 
 ### Blockchain
+
 ![BSC](https://img.shields.io/badge/Binance%20Smart%20Chain-Testnet-f3ba2f?style=flat-square&logo=binance)
 ![BSCScan API](https://img.shields.io/badge/BSCScan-API-orange?style=flat-square)
 
@@ -164,23 +172,27 @@ BSC Testnet BNB (from faucet)
 ### Installation
 
 1. **Clone the repository**
+
 ```bash
 git clone https://github.com/Iglxkardam/Staryield.git
 cd Staryield/arbstake
 ```
 
 2. **Install dependencies**
+
 ```bash
 npm install
 cd web3 && npm install && cd ..
 ```
 
 3. **Configure environment**
+
 ```bash
 cp .env.example .env.local
 ```
 
 Edit `.env.local`:
+
 ```env
 NEXT_PUBLIC_ROUTER_ADDRESS=0x8c1Fef12BaFC06077C06486bF4c3E0c9c1F78e78
 NEXT_PUBLIC_ADAPTER_ADDRESS=0x58E7DF3cAae6EEb94A76Ac3b74eC88049F438e7B
@@ -189,6 +201,7 @@ NEXT_PUBLIC_BSCSCAN_API_KEY=your_api_key
 ```
 
 4. **Run development server**
+
 ```bash
 npm run dev
 ```
@@ -204,11 +217,13 @@ Visit `http://localhost:8080` 🎉
 #### How to Stake
 
 1. **Connect Wallet**
+
    - Click "Connect Wallet" button
    - Select MetaMask or your preferred wallet
    - Switch to BSC Testnet (Chain ID: 97)
 
 2. **Stake BNB**
+
    - Navigate to Dashboard
    - Enter amount (minimum 0.1 BNB)
    - Click "APPROVE" to approve token spending
@@ -216,11 +231,13 @@ Visit `http://localhost:8080` 🎉
    - Wait for confirmation (~3 seconds)
 
 3. **Watch Rewards Grow**
+
    - Rewards update every 5 seconds
    - Shows "Growing at 10% APY"
    - View in "Unclaimed Earning (Live)" section
 
 4. **Claim Rewards**
+
    - Click "Claim Rewards" button
    - Approve TWO transactions:
      - Harvest (generates rewards)
@@ -257,12 +274,14 @@ Rewards = 1 × 0.1 × (86,400 / 31,536,000)
 **Address**: `0x8c1Fef12BaFC06077C06486bF4c3E0c9c1F78e78`
 
 Main router contract handling:
+
 - User deposits and withdrawals
 - Share calculation and management
 - Reward distribution
 - Unbonding queue management
 
 **Key Functions**:
+
 ```solidity
 function stake() external payable
 function requestUnstake(uint256 shares, uint256 deadline) external
@@ -276,12 +295,14 @@ function harvest() external
 **Address**: `0x58E7DF3cAae6EEb94A76Ac3b74eC88049F438e7B`
 
 Rewards calculation engine:
+
 - Time-based reward generation
 - 10% Annual APY
 - Instant reward calculation
 - No delegation needed
 
 **Key Functions**:
+
 ```solidity
 function stake() external payable
 function harvest() external
@@ -289,6 +310,7 @@ function calculatePendingRewards() public view returns (uint256)
 ```
 
 **Reward Calculation**:
+
 ```solidity
 uint256 public constant ANNUAL_RATE_BP = 1000; // 10% = 1000 basis points
 uint256 public constant BP_DIVISOR = 10000;
@@ -318,11 +340,13 @@ npx hardhat test
 ### Manual Testing on Testnet
 
 1. **Get Test BNB**
+
    - Visit [BSC Testnet Faucet](https://testnet.binance.org/faucet-smart)
    - Enter your wallet address
    - Request BNB
 
 2. **Test Staking Flow**
+
 ```bash
 cd web3
 node scripts/check-current-status.js    # Check balances
@@ -341,12 +365,14 @@ node scripts/check-rewards-now.js        # Check pending rewards
 ### Deploy to Production
 
 1. **Build Frontend**
+
 ```bash
 npm run build
 npm start
 ```
 
 2. **Deploy Smart Contracts (Mainnet)**
+
 ```bash
 cd web3
 
@@ -361,12 +387,14 @@ npx hardhat run scripts/configure-adapter-js.js --network bscMainnet
 ```
 
 3. **Update Environment Variables**
+
 ```env
 NEXT_PUBLIC_ROUTER_ADDRESS=<new_router_address>
 NEXT_PUBLIC_ADAPTER_ADDRESS=<new_adapter_address>
 ```
 
 4. **Deploy to Vercel**
+
 ```bash
 vercel --prod
 ```
@@ -419,17 +447,23 @@ We welcome contributions! Please follow these steps:
 
 1. **Fork the repository**
 2. **Create a feature branch**
+
 ```bash
 git checkout -b feature/AmazingFeature
 ```
+
 3. **Commit your changes**
+
 ```bash
 git commit -m 'Add some AmazingFeature'
 ```
+
 4. **Push to the branch**
+
 ```bash
 git push origin feature/AmazingFeature
 ```
+
 5. **Open a Pull Request**
 
 ### Development Guidelines
@@ -476,6 +510,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📈 Roadmap
 
 ### ✅ Phase 1 - MVP (Completed)
+
 - [x] Core staking functionality
 - [x] Time-based rewards (10% APY)
 - [x] Wallet integration
@@ -483,6 +518,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [x] BSC Testnet deployment
 
 ### 🚧 Phase 2 - Enhanced Features (In Progress)
+
 - [ ] Mainnet deployment
 - [ ] Multi-token support (USDT, BUSD)
 - [ ] Referral rewards system
@@ -490,6 +526,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] Mobile app
 
 ### 🔮 Phase 3 - Advanced DeFi (Planned)
+
 - [ ] Governance token (STAR)
 - [ ] NFT staking
 - [ ] Cross-chain bridges
@@ -502,13 +539,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <div align="center">
 
-| Metric | Value |
-|--------|-------|
-| **Page Load Time** | < 2 seconds |
-| **Transaction Confirmation** | ~3 seconds |
-| **Reward Update Frequency** | 5 seconds |
-| **Smart Contract Gas** | Optimized |
-| **Uptime** | 99.9% |
+| Metric                       | Value       |
+| ---------------------------- | ----------- |
+| **Page Load Time**           | < 2 seconds |
+| **Transaction Confirmation** | ~3 seconds  |
+| **Reward Update Frequency**  | 5 seconds   |
+| **Smart Contract Gas**       | Optimized   |
+| **Uptime**                   | 99.9%       |
 
 </div>
 
@@ -520,30 +557,35 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 <summary><strong>What is the minimum stake amount?</strong></summary>
 
 The minimum stake amount is **0.1 BNB** to ensure gas costs don't outweigh rewards.
+
 </details>
 
 <details>
 <summary><strong>How are rewards calculated?</strong></summary>
 
 Rewards are calculated based on time elapsed: `Rewards = StakedAmount × 10% × (TimeElapsed / SecondsPerYear)`
+
 </details>
 
 <details>
 <summary><strong>Can I unstake anytime?</strong></summary>
 
 Yes! There's a **0 second unbonding period** for testing. In production, there may be a short unbonding period for security.
+
 </details>
 
 <details>
 <summary><strong>Are the smart contracts audited?</strong></summary>
 
 The contracts are currently deployed on BSC Testnet. A full security audit will be conducted before mainnet launch.
+
 </details>
 
 <details>
 <summary><strong>What wallets are supported?</strong></summary>
 
 We support **MetaMask**, **WalletConnect**, **Coinbase Wallet**, and most Web3 wallets via RainbowKit.
+
 </details>
 
 ---
@@ -558,6 +600,6 @@ We support **MetaMask**, **WalletConnect**, **Coinbase Wallet**, and most Web3 w
 
 ---
 
-*Navigate the Financial Cosmos with StarYield Staking* 🚀✨
+_Navigate the Financial Cosmos with StarYield Staking_ 🚀✨
 
 </div>
