@@ -15,10 +15,16 @@ export interface PancakeSwapPool {
     name: string;
   };
   totalValueLockedUSD: string;
-  volumeUSD: string;
+  volumeUSD: string; // cumulative volume (not 24h)
   feeTier: string;
   apr?: number;
   apy?: number;
+  poolDayData?: Array<{
+    date: number;
+    volumeUSD: string;
+    tvlUSD: string;
+    feesUSD: string;
+  }>;
 }
 
 export interface APYData {
@@ -38,50 +44,49 @@ class PancakeSwapService {
    */
   async fetchPoolData(tokenAddress: string): Promise<PancakeSwapPool | null> {
     try {
-      const query = `
+      // The Graph doesn't support `or` in where filters for arrays, so query token0 then token1
+      const makeQuery = (side: 'token0' | 'token1') => `
         query GetPool($tokenAddress: String!) {
           pools(
-            where: {
-              or: [
-                { token0: $tokenAddress },
-                { token1: $tokenAddress }
-              ]
-            }
+            where: { ${side}: $tokenAddress }
             orderBy: totalValueLockedUSD
             orderDirection: desc
             first: 1
           ) {
             id
-            token0 {
-              id
-              symbol
-              name
-            }
-            token1 {
-              id
-              symbol
-              name
-            }
+            token0 { id symbol name }
+            token1 { id symbol name }
             totalValueLockedUSD
             volumeUSD
             feeTier
+            poolDayData(orderBy: date, orderDirection: desc, first: 2) {
+              date
+              volumeUSD
+              tvlUSD
+              feesUSD
+            }
           }
         }
       `;
 
-      const response = await fetch(this.BSC_SUBGRAPH_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query,
-          variables: { tokenAddress: tokenAddress.toLowerCase() },
-        }),
-      });
+      const variables = { tokenAddress: tokenAddress.toLowerCase() };
 
-      const data = await response.json();
-      return data.data?.pools?.[0] || null;
+      const request = async (query: string) => {
+        const res = await fetch(this.BSC_SUBGRAPH_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query, variables }),
+        });
+        return res.json();
+      };
+
+      let data = await request(makeQuery('token0'));
+      let pool = data?.data?.pools?.[0];
+      if (!pool) {
+        data = await request(makeQuery('token1'));
+        pool = data?.data?.pools?.[0];
+      }
+      return pool || null;
     } catch (error) {
       console.error('Error fetching pool data:', error);
       return null;
@@ -93,7 +98,14 @@ class PancakeSwapService {
    */
   calculateAPY(pool: PancakeSwapPool): APYData {
     const tvl = parseFloat(pool.totalValueLockedUSD);
-    const volume24h = parseFloat(pool.volumeUSD);
+    // Prefer last day volume from poolDayData; fallback to cumulative (rough, not ideal)
+    let volume24h = 0;
+    if (pool.poolDayData && pool.poolDayData.length > 0) {
+      // Most recent day snapshot
+      volume24h = parseFloat(pool.poolDayData[0].volumeUSD || '0');
+    } else {
+      volume24h = parseFloat(pool.volumeUSD);
+    }
     const feeTier = parseFloat(pool.feeTier) / 10000; // Convert from basis points
 
     // Calculate daily fees

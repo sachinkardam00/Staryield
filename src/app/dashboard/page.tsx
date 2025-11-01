@@ -2,7 +2,12 @@
 
 import { CustomConnectButton } from '@/components/CustomConnectButton';
 import { FastLink } from '@/components/FastLink';
-import { useAccount, useBalance } from 'wagmi';
+import { useAccount, useBalance, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
+import { useAPY } from '@/hooks/useAPY';
+import { parseEther, formatEther } from 'viem';
+import { STAKING_ROUTER_BNB_ABI } from '@/contracts/abi/StakingRouterBNB';
+import { SIMPLE_MOCK_ADAPTER_ABI } from '@/contracts/abi/SimpleMockAdapter';
+import { getRouterAddress } from '@/contracts/addresses';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -12,6 +17,69 @@ export default function DashboardPage() {
     address: address,
   });
   const [activeTab, setActiveTab] = useState('tab1');
+  const routerAddress = getRouterAddress();
+
+  // Read user's staked shares
+  const { data: userShares, refetch: refetchShares } = useReadContract({
+    address: routerAddress,
+    abi: STAKING_ROUTER_BNB_ABI,
+    functionName: 'sharesOf',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address && !!routerAddress }
+  });
+
+  // Read total principal to calculate BNB value
+  const { data: totalPrincipal } = useReadContract({
+    address: routerAddress,
+    abi: STAKING_ROUTER_BNB_ABI,
+    functionName: 'totalPrincipal',
+    query: { enabled: !!routerAddress }
+  });
+
+  // Read total shares
+  const { data: totalShares } = useReadContract({
+    address: routerAddress,
+    abi: STAKING_ROUTER_BNB_ABI,
+    functionName: 'totalShares',
+    query: { enabled: !!routerAddress }
+  });
+
+  // Read pending rewards from router (already harvested rewards)
+  const { data: pendingRewards, refetch: refetchRewards } = useReadContract({
+    address: routerAddress,
+    abi: STAKING_ROUTER_BNB_ABI,
+    functionName: 'pendingRewards',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address && !!routerAddress }
+  });
+
+  // Read pending rewards from adapter (real-time accumulating rewards)
+  const adapterAddress = process.env.NEXT_PUBLIC_ADAPTER_ADDRESS as `0x${string}`;
+  const { data: adapterPendingRewards, refetch: refetchAdapterRewards } = useReadContract({
+    address: adapterAddress,
+    abi: SIMPLE_MOCK_ADAPTER_ABI,
+    functionName: 'calculatePendingRewards',
+    query: { 
+      enabled: !!adapterAddress,
+      refetchInterval: 5000 // Refresh every 5 seconds to show growing rewards
+    }
+  });
+
+  // Total pending rewards = router pending + adapter pending
+  const totalPendingRewards = (pendingRewards || BigInt(0)) + (adapterPendingRewards || BigInt(0));
+
+  // Calculate user's staked BNB amount
+  const userStakedBNB = userShares && totalPrincipal && totalShares && totalShares > BigInt(0)
+    ? (userShares * totalPrincipal) / totalShares
+    : BigInt(0);
+  // Config from env (build-time). Safe defaults if not provided.
+  const REFRESH_MS = Number(process.env.NEXT_PUBLIC_APY_REFRESH_MS ?? '25000');
+  const [F_COMET, F_METEOR, F_SUPERNOVA] = (() => {
+    const raw = (process.env.NEXT_PUBLIC_TIER_FACTORS ?? '0.8,1.2,1.8') as string;
+    const parts = raw.split(',').map((s) => Number(s.trim())).filter((n) => isFinite(n) && n > 0);
+    return [parts[0] ?? 0.8, parts[1] ?? 1.2, parts[2] ?? 1.8];
+  })();
+  const { data: apyData } = useAPY({ tokenSymbol: 'BNB', refetchInterval: REFRESH_MS });
 
   useEffect(() => {
     // Add admin class to body
@@ -23,12 +91,12 @@ export default function DashboardPage() {
     };
   }, []);
 
+  // Number animations for counters (original UI)
   useEffect(() => {
-    // Initialize number animations
     const initNumberAnimations = () => {
       if (typeof window !== 'undefined' && (window as any).jQuery) {
         const $ = (window as any).jQuery;
-        $('.animate-number').each(function() {
+        $('.animate-number').each(function(this: any) {
           const $this = $(this);
           const countTo = $this.attr('data-value');
           const countFrom = 0;
@@ -39,10 +107,10 @@ export default function DashboardPage() {
           }, {
             duration: duration,
             easing: 'linear',
-            step: function() {
+            step: function(this: any) {
               $this.text(commaSeparateNumber(Math.floor(this.countNum)));
             },
-            complete: function() {
+            complete: function(this: any) {
               $this.text(commaSeparateNumber(this.countNum));
             }
           });
@@ -57,20 +125,270 @@ export default function DashboardPage() {
     setTimeout(initNumberAnimations, 1000);
   }, []);
 
-  const handleStake = () => {
-    if (!isConnected) {
-      alert('Please connect your wallet first');
-      return;
-    }
-    alert('Stake functionality will be implemented with smart contract integration');
+  // (old placeholder handlers removed; real handlers defined below)
+
+  // No dynamic APY text changes in this page to preserve UI/UX
+  const fmtPct = (n?: number, dp: number = 2) =>
+    typeof n === 'number' && isFinite(n) ? `${n.toFixed(dp)}%` : '—';
+  // Contract write helpers
+  const { writeContractAsync } = useWriteContract();
+
+  const getActiveInputValue = () => {
+    const map: Record<string, string> = { tab1: 'stake-input-1', tab2: 'stake-input-2', tab3: 'stake-input-3' };
+    const id = map[activeTab];
+    const el = typeof window !== 'undefined' ? document.getElementById(id) as HTMLInputElement | null : null;
+    const v = el?.value?.trim() || '';
+    return v;
   };
 
   const handleApprove = () => {
+    alert('Approval not required for native BNB.');
+  };
+
+  const handleStake = async () => {
     if (!isConnected) {
       alert('Please connect your wallet first');
       return;
     }
-    alert('Approve functionality will be implemented with smart contract integration');
+    if (!routerAddress) {
+      alert('Router address missing. Set NEXT_PUBLIC_ROUTER_ADDRESS in .env.local');
+      return;
+    }
+    const amountStr = getActiveInputValue();
+    const amount = Number(amountStr || '0');
+    
+    // BSC StakeHub requires minimum 0.1 BNB for delegation
+    const MIN_STAKE = 0.1;
+    if (!amount || amount <= 0) {
+      alert('Enter a valid BNB amount');
+      return;
+    }
+    if (amount < MIN_STAKE) {
+      alert(`Minimum stake amount is ${MIN_STAKE} BNB for BSC Testnet.\nThis is required by the BSC StakeHub contract.`);
+      return;
+    }
+    const value = parseEther(amountStr as `${number}`);
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + 1800);
+    try {
+      await writeContractAsync({
+        abi: STAKING_ROUTER_BNB_ABI,
+        address: routerAddress,
+        functionName: 'depositBNB',
+        args: [deadline],
+        value,
+      });
+      alert('Stake transaction submitted. Refreshing data...');
+      // Refresh data after successful stake
+      setTimeout(() => {
+        refetchShares();
+        refetchRewards();
+      }, 2000);
+    } catch (e: any) {
+      console.error(e);
+      alert(e?.shortMessage || e?.message || 'Failed to stake');
+    }
+  };
+
+  const handleUnstake = async () => {
+    if (!isConnected) {
+      alert('Please connect your wallet first');
+      return;
+    }
+    if (!routerAddress) {
+      alert('Router address missing');
+      return;
+    }
+    
+    console.log('User shares:', userShares?.toString());
+    
+    if (!userShares || userShares === BigInt(0)) {
+      alert('You have no staked BNB to unstake. Your current shares: ' + (userShares?.toString() || '0'));
+      return;
+    }
+
+    const currentStaked = formatEther(userShares);
+    
+    // Ask user for custom amount or all
+    const amountStr = prompt(`Enter amount to unstake (BNB):\n\nYou have ${currentStaked} BNB staked.\nEnter amount or leave empty to unstake all:`);
+    
+    // If user cancels, return
+    if (amountStr === null) return;
+    
+    let sharesToUnstake: bigint;
+    
+    // If empty or "all", unstake everything
+    if (amountStr === '' || amountStr.toLowerCase() === 'all') {
+      sharesToUnstake = userShares;
+    } else {
+      // Parse custom amount
+      try {
+        const requestedAmount = parseFloat(amountStr);
+        const maxAmount = parseFloat(currentStaked);
+        
+        if (isNaN(requestedAmount) || requestedAmount <= 0) {
+          alert('Invalid amount. Please enter a positive number.');
+          return;
+        }
+        
+        if (requestedAmount > maxAmount) {
+          alert(`You only have ${currentStaked} BNB staked. Cannot unstake ${requestedAmount} BNB.`);
+          return;
+        }
+        
+        // Convert BNB amount to shares (1:1 ratio for now)
+        sharesToUnstake = parseEther(requestedAmount.toString());
+        
+        // Make sure we don't exceed available shares
+        if (sharesToUnstake > userShares) {
+          sharesToUnstake = userShares;
+        }
+      } catch (e) {
+        alert('Invalid amount format. Please enter a valid number.');
+        return;
+      }
+    }
+
+    try {
+      const deadline = BigInt(Math.floor(Date.now() / 1000) + 1800);
+      
+      console.log('Unstaking:', {
+        shares: sharesToUnstake.toString(),
+        bnbAmount: formatEther(sharesToUnstake),
+        deadline: deadline.toString(),
+        routerAddress
+      });
+      
+      await writeContractAsync({
+        abi: STAKING_ROUTER_BNB_ABI,
+        address: routerAddress,
+        functionName: 'requestUnstake',
+        args: [sharesToUnstake, deadline],
+      });
+      
+      alert(`Unstake request submitted for ${formatEther(sharesToUnstake)} BNB! Your BNB will be available for withdrawal after the unbonding period (currently 0 seconds).`);
+      setTimeout(() => {
+        refetchShares();
+      }, 2000);
+    } catch (e: any) {
+      console.error('Unstake error:', e);
+      const errorMsg = e?.shortMessage || e?.message || JSON.stringify(e);
+      alert('Failed to unstake: ' + errorMsg);
+    }
+  };
+
+  const handleWithdraw = async () => {
+    if (!isConnected) {
+      alert('Please connect your wallet first');
+      return;
+    }
+    if (!routerAddress) {
+      alert('Router address missing');
+      return;
+    }
+
+    // Get the latest unbond queue index (most recent unstake request)
+    const indexStr = prompt('Enter the unbond queue index (usually 0 for first unstake):');
+    if (!indexStr) return;
+
+    try {
+      const index = BigInt(indexStr);
+      console.log('Withdrawing unbonded funds, index:', index.toString());
+
+      await writeContractAsync({
+        abi: STAKING_ROUTER_BNB_ABI,
+        address: routerAddress,
+        functionName: 'withdrawUnbonded',
+        args: [index],
+      });
+      
+      alert('Withdrawal successful! Your BNB has been returned to your wallet.');
+      setTimeout(() => {
+        refetchShares();
+      }, 2000);
+    } catch (e: any) {
+      console.error('Withdraw error:', e);
+      const errorMsg = e?.shortMessage || e?.message || JSON.stringify(e);
+      alert('Failed to withdraw: ' + errorMsg);
+    }
+  };
+
+  const handleHarvest = async () => {
+    if (!isConnected || !routerAddress) return;
+    
+    try {
+      console.log('Harvesting rewards...');
+      await writeContractAsync({
+        abi: STAKING_ROUTER_BNB_ABI,
+        address: routerAddress,
+        functionName: 'harvest',
+        args: [],
+      });
+      console.log('Harvest successful');
+      return true;
+    } catch (e: any) {
+      console.error('Harvest error:', e);
+      return false;
+    }
+  };
+
+  const handleClaim = async () => {
+    if (!isConnected) {
+      alert('Please connect your wallet first');
+      return;
+    }
+    if (!routerAddress) {
+      alert('Router address missing');
+      return;
+    }
+    
+    try {
+      // First, harvest to generate rewards from the adapter
+      console.log('Step 1: Harvesting rewards from adapter...');
+      await writeContractAsync({
+        abi: STAKING_ROUTER_BNB_ABI,
+        address: routerAddress,
+        functionName: 'harvest',
+        args: [],
+      });
+      
+      // Wait for harvest to complete
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Refetch pending rewards
+      refetchRewards();
+      
+      // Wait a bit more
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Then claim the rewards
+      console.log('Step 2: Claiming rewards...');
+      await writeContractAsync({
+        abi: STAKING_ROUTER_BNB_ABI,
+        address: routerAddress,
+        functionName: 'claim',
+        args: [],
+      });
+      
+      alert('Rewards claimed successfully! Check your wallet balance.');
+      
+      // Refresh data
+      setTimeout(() => {
+        refetchRewards();
+      }, 2000);
+    } catch (e: any) {
+      console.error('Claim error:', e);
+      const errorMsg = e?.shortMessage || e?.message || 'Failed to claim';
+      alert(errorMsg);
+    }
+  };
+  const tierValues = (factor: number) => {
+    if (!apyData) return { apy: undefined, apr: undefined, daily: undefined } as {
+      apy: number | undefined; apr: number | undefined; daily: number | undefined;
+    };
+    const apr = apyData.apr * factor;
+    const apy = apyData.apy * factor;
+    const daily = apr / 365;
+    return { apy, apr, daily };
   };
 
   return (
@@ -186,19 +504,19 @@ export default function DashboardPage() {
                 <ul className="top-stats-ul clearfix">
                   <li>
                     <h4>Total Staked</h4>
-                    <h3>BNB <span className="animate-number" data-value="1400">1400</span></h3>
+                    <h3>BNB <span>{userStakedBNB ? parseFloat(formatEther(userStakedBNB)).toFixed(4) : '0'}</span></h3>
                   </li>
                   <li>
                     <h4>Total Earned</h4>
-                    <h3>BNB <span className="animate-number" data-value="1000">1000</span></h3>
+                    <h3>BNB <span>{totalPendingRewards ? parseFloat(formatEther(totalPendingRewards)).toFixed(8) : '0'}</span></h3>
                   </li>
                   <li>
                     <h4>Active Staking</h4>
-                    <h3>BNB <span className="animate-number" data-value="15000">15,000</span></h3>
+                    <h3>BNB <span>{userStakedBNB ? parseFloat(formatEther(userStakedBNB)).toFixed(4) : '0'}</span></h3>
                   </li>
                   <li>
                     <h4>Withdrawn Earning</h4>
-                    <h3>BNB <span className="animate-number" data-value="11000">11,000</span></h3>
+                    <h3>BNB <span className="animate-number" data-value="0">0</span></h3>
                   </li>
                 </ul>
               </div>
@@ -210,10 +528,24 @@ export default function DashboardPage() {
                     <img src="/images/bnb.png" alt="BNB" />
                   </div>
                   <div className="claim-box-details">
-                    <h4>Unclaimed Earning</h4>
-                    <h3><b className="ticker">BNB</b> <span className="animate-number" data-value="11000">11,000</span></h3>
-                    <button className="btn btn-blue">
-                      <i className="fa-regular fa-hand-pointer"></i> Claim
+                    <h4>Unclaimed Earning (Live)</h4>
+                    <h3><b className="ticker">BNB</b> <span>{totalPendingRewards ? parseFloat(formatEther(totalPendingRewards)).toFixed(10) : '0'}</span></h3>
+                    {adapterPendingRewards && adapterPendingRewards > BigInt(0) && (
+                      <p style={{fontSize: '11px', color: '#4CAF50', marginTop: '2px'}}>
+                        Growing at 10% APY (updates every 5s)
+                      </p>
+                    )}
+                    <p style={{fontSize: '12px', color: '#888', marginTop: '5px', marginBottom: '10px'}}>
+                      Click &quot;Claim Rewards&quot; to harvest and claim in one transaction
+                    </p>
+                    <button className="btn btn-blue" onClick={handleClaim} style={{width: '100%'}}>
+                      <i className="fa-regular fa-hand-pointer"></i> Claim Rewards
+                    </button>
+                    <button className="btn btn-red" onClick={handleUnstake} style={{marginTop: '10px', display: 'block', width: '100%'}}>
+                      <i className="fa-solid fa-arrow-down"></i> Request Unstake
+                    </button>
+                    <button className="btn btn-green" onClick={handleWithdraw} style={{marginTop: '10px', display: 'block', width: '100%'}}>
+                      <i className="fa-solid fa-money-bill-wave"></i> Withdraw Unstaked
                     </button>
                   </div>
                 </div>
@@ -242,18 +574,17 @@ export default function DashboardPage() {
                   </ul>
                   <div className="tab-content">
                     {/* Comet Tier */}
-                    {activeTab === 'tab1' && (
-                      <div className="tab active" id="tab1">
+                    <div className={`tab ${activeTab === 'tab1' ? 'active' : ''}`} id="tab1">
                         <div className="staking-wrap">
                           <div className="staking-top">
                             <div className="s-title"><i>1</i><span>Comet Tier</span><b>Stake $BNB</b></div>
                             <div className="s-data">
                               <h4>You Staked</h4>
-                              <h5>0 <b>BNB</b></h5>
+                              <h5>{userStakedBNB ? parseFloat(formatEther(userStakedBNB)).toFixed(4) : '0'} <b>BNB</b></h5>
                             </div>
                             <div className="s-data">
                               <h4>APY/APR</h4>
-                              <h5>1095%</h5>
+                              {(() => { const t = tierValues(F_COMET); return <h5>{fmtPct(t.apy, 0)} / {fmtPct(t.apr, 2)}</h5>; })()}
                             </div>
                             <div className="s-data">
                               <h4>Locked Period</h4>
@@ -265,7 +596,7 @@ export default function DashboardPage() {
                             </div>
                             <div className="s-data">
                               <h4>Daily</h4>
-                              <h5>3%</h5>
+                              {(() => { const t = tierValues(F_COMET); return <h5>{fmtPct(t.daily, 2)}</h5>; })()}
                             </div>
                           </div>
                           <div className="staking-field">
@@ -274,7 +605,7 @@ export default function DashboardPage() {
                                 <img src="/images/bnb.png" alt="BNB" />&nbsp; BNB
                               </div>
                               <div className="input-box">
-                                <input type="text" placeholder="0" />
+                                <input id="stake-input-1" type="text" placeholder="0.1" />
                                 <span className="max">Max</span>
                               </div>
                             </div>
@@ -282,7 +613,7 @@ export default function DashboardPage() {
                               <div id="balance">
                                 Balance: {isConnected && balance ? `${parseFloat(balance.formatted).toFixed(4)} ${balance.symbol}` : 'Connect wallet'}
                               </div>
-                              <div>Enter Amount Above</div>
+                              <div style={{color: '#ffa500'}}>⚠️ Minimum: 0.1 BNB</div>
                             </div>
                             <div className="staking-button half clearfix">
                               <div className="s-button">
@@ -299,18 +630,20 @@ export default function DashboardPage() {
                           </div>
                         </div>
                       </div>
-                    )}
 
-                    {/* Similar structure for Meteor and Supernova tiers would go here */}
-                    {activeTab === 'tab2' && (
-                      <div className="tab active" id="tab2">
+                    {/* Meteor Tier */}
+                    <div className={`tab ${activeTab === 'tab2' ? 'active' : ''}`} id="tab2">
                         <div className="staking-wrap">
                           {/* Meteor tier content - similar structure with different values */}
                           <div className="staking-top">
                             <div className="s-title"><i>2</i><span>Meteor Tier</span><b>Stake $BNB</b></div>
                             <div className="s-data">
+                              <h4>You Staked</h4>
+                              <h5>{userStakedBNB ? parseFloat(formatEther(userStakedBNB)).toFixed(4) : '0'} <b>BNB</b></h5>
+                            </div>
+                            <div className="s-data">
                               <h4>APY/APR</h4>
-                              <h5>1825%</h5>
+                              {(() => { const t = tierValues(F_METEOR); return <h5>{fmtPct(t.apy, 0)} / {fmtPct(t.apr, 2)}</h5>; })()}
                             </div>
                             <div className="s-data">
                               <h4>Locked Period</h4>
@@ -322,7 +655,7 @@ export default function DashboardPage() {
                             </div>
                             <div className="s-data">
                               <h4>Daily</h4>
-                              <h5>5%</h5>
+                              {(() => { const t = tierValues(F_METEOR); return <h5>{fmtPct(t.daily, 2)}</h5>; })()}
                             </div>
                           </div>
                           <div className="staking-field">
@@ -331,7 +664,7 @@ export default function DashboardPage() {
                                 <img src="/images/bnb.png" alt="BNB" />&nbsp; BNB
                               </div>
                               <div className="input-box">
-                                <input type="text" placeholder="0" />
+                                <input id="stake-input-2" type="text" placeholder="0.1" />
                                 <span className="max">Max</span>
                               </div>
                             </div>
@@ -339,7 +672,7 @@ export default function DashboardPage() {
                               <div id="balance">
                                 Balance: {isConnected && balance ? `${parseFloat(balance.formatted).toFixed(4)} ${balance.symbol}` : 'Connect wallet'}
                               </div>
-                              <div>Enter Amount Above</div>
+                              <div style={{color: '#ffa500'}}>⚠️ Minimum: 0.1 BNB</div>
                             </div>
                             <div className="staking-button half clearfix">
                               <div className="s-button">
@@ -356,17 +689,20 @@ export default function DashboardPage() {
                           </div>
                         </div>
                       </div>
-                    )}
 
-                    {activeTab === 'tab3' && (
-                      <div className="tab active" id="tab3">
+                    {/* Supernova Tier */}
+                    <div className={`tab ${activeTab === 'tab3' ? 'active' : ''}`} id="tab3">
                         <div className="staking-wrap">
                           {/* Supernova tier content */}
                           <div className="staking-top">
                             <div className="s-title"><i>3</i><span>Supernova Tier</span><b>Stake $BNB</b></div>
                             <div className="s-data">
+                              <h4>You Staked</h4>
+                              <h5>{userStakedBNB ? parseFloat(formatEther(userStakedBNB)).toFixed(4) : '0'} <b>BNB</b></h5>
+                            </div>
+                            <div className="s-data">
                               <h4>APY/APR</h4>
-                              <h5>2555%</h5>
+                              {(() => { const t = tierValues(F_SUPERNOVA); return <h5>{fmtPct(t.apy, 0)} / {fmtPct(t.apr, 2)}</h5>; })()}
                             </div>
                             <div className="s-data">
                               <h4>Locked Period</h4>
@@ -378,7 +714,7 @@ export default function DashboardPage() {
                             </div>
                             <div className="s-data">
                               <h4>Daily</h4>
-                              <h5>7%</h5>
+                              {(() => { const t = tierValues(F_SUPERNOVA); return <h5>{fmtPct(t.daily, 2)}</h5>; })()}
                             </div>
                           </div>
                           <div className="staking-field">
@@ -387,7 +723,7 @@ export default function DashboardPage() {
                                 <img src="/images/bnb.png" alt="BNB" />&nbsp; BNB
                               </div>
                               <div className="input-box">
-                                <input type="text" placeholder="0" />
+                                <input id="stake-input-3" type="text" placeholder="0.1" />
                                 <span className="max">Max</span>
                               </div>
                             </div>
@@ -395,7 +731,7 @@ export default function DashboardPage() {
                               <div id="balance">
                                 Balance: {isConnected && balance ? `${parseFloat(balance.formatted).toFixed(4)} ${balance.symbol}` : 'Connect wallet'}
                               </div>
-                              <div>Enter Amount Above</div>
+                              <div style={{color: '#ffa500'}}>⚠️ Minimum: 0.1 BNB</div>
                             </div>
                             <div className="staking-button half clearfix">
                               <div className="s-button">
@@ -412,7 +748,6 @@ export default function DashboardPage() {
                           </div>
                         </div>
                       </div>
-                    )}
                   </div>
                 </div>
               </div>

@@ -37,12 +37,9 @@ export function LiveAPYCalculator({ stakingAmount, selectedTier = 'comet', class
     const yearlyEarning = amount * (tierAPY / 100);
 
     // Best APY comparison (show highest tier)
-    const bestAPY = apyData.apy * 1.8; // Supernova tier
-
     return {
       currentAPY: tierAPY,
       currentAPR: tierAPR,
-      bestAPY,
       dailyEarning,
       weeklyEarning,
       monthlyEarning,
@@ -157,13 +154,8 @@ export function LiveAPYCalculator({ stakingAmount, selectedTier = 'comet', class
         </div>
       </div>
 
-      {/* Current vs Best APY Comparison */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '16px',
-        marginBottom: '24px'
-      }}>
+      {/* Current APY */}
+      <div style={{ marginBottom: '24px' }}>
         <div style={{
           padding: '20px',
           background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(56, 189, 248, 0.1) 100%)',
@@ -192,37 +184,6 @@ export function LiveAPYCalculator({ stakingAmount, selectedTier = 'comet', class
             color: 'rgba(255, 255, 255, 0.5)'
           }}>
             APR: {formatNumber(calculations.currentAPR, 1)}%
-          </div>
-        </div>
-
-        <div style={{
-          padding: '20px',
-          background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(252, 211, 77, 0.1) 100%)',
-          borderRadius: '12px',
-          border: '1px solid rgba(245, 158, 11, 0.3)',
-          textAlign: 'center'
-        }}>
-          <div style={{
-            fontSize: '12px',
-            color: 'rgba(255, 255, 255, 0.7)',
-            marginBottom: '8px',
-            textTransform: 'uppercase'
-          }}>
-            Best APY (Supernova)
-          </div>
-          <div style={{
-            fontSize: '28px',
-            fontWeight: '700',
-            color: '#f59e0b',
-            marginBottom: '4px'
-          }}>
-            {formatNumber(calculations.bestAPY, 1)}%
-          </div>
-          <div style={{
-            fontSize: '11px',
-            color: 'rgba(255, 255, 255, 0.5)'
-          }}>
-            Requires 10+ BNB
           </div>
         </div>
       </div>
@@ -320,24 +281,7 @@ export function LiveAPYCalculator({ stakingAmount, selectedTier = 'comet', class
         </div>
       </div>
 
-      {/* Data Source Attribution */}
-      <div style={{
-        padding: '12px',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        borderRadius: '8px',
-        border: '1px solid rgba(59, 130, 246, 0.3)',
-        textAlign: 'center'
-      }}>
-        <div style={{
-          fontSize: '11px',
-          color: 'rgba(255, 255, 255, 0.6)',
-          lineHeight: '1.4'
-        }}>
-          📊 Live data from PancakeSwap • 🥞 Real-time APY calculations
-          <br />
-          Last updated: {apyData?.lastUpdated.toLocaleTimeString()}
-        </div>
-      </div>
+      {/* Attribution removed per request */}
 
       <style jsx>{`
         @keyframes spin {

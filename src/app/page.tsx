@@ -15,7 +15,7 @@ export default function HomePage() {
       
       animationStarted = true;
       const $ = (window as any).jQuery;
-      $('.animate-number').each(function() {
+      $('.animate-number').each(function(this: any) {
         const $this = $(this);
         const countTo = $this.attr('data-value');
         const countFrom = 0;
@@ -26,10 +26,10 @@ export default function HomePage() {
         }, {
           duration: duration,
           easing: 'linear',
-          step: function() {
+          step: function(this: any) {
             $this.text(commaSeparateNumber(Math.floor(this.countNum)));
           },
-          complete: function() {
+          complete: function(this: any) {
             $this.text(commaSeparateNumber(this.countNum));
           }
         });
@@ -85,7 +85,7 @@ export default function HomePage() {
               <p>Journey through the financial galaxy with StarYield&apos;s premier staking experience. Unlock the potential of your digital assets as you traverse through a universe of rewards. With StarYield, your crypto ventures beyond the ordinary, charting a course through the stars of DeFi space. Secure.</p>
               <div className="button-set text-center">
                 <Link href="/staking" className="btn btn-skyblue normal">Begin Staking</Link>
-                <a href="#" className="btn btn-green normal" style={{marginLeft:'10px'}}>read Document</a>
+                <a href="#" className="btn btn-green normal" style={{marginLeft: '10px'}}>read Document</a>
               </div>
             </div>
             <div className="arb-stats">
@@ -93,15 +93,15 @@ export default function HomePage() {
                 <APYStats />
                 <li>
                   <h4>Total value locked</h4>
-                  <h3>$<span className="animate-number" data-value="1425422">1,425,422</span></h3>
+                  <h3>$—</h3>
                 </li>
                 <li>
                   <h4>Total stakers</h4>
-                  <h3><span className="animate-number" data-value="6254">6254</span></h3>
+                  <h3>—</h3>
                 </li>
                 <li>
                   <h4>Total payouts</h4>
-                  <h3>$<span className="animate-number" data-value="3425422">3,425,422</span></h3>
+                  <h3>$—</h3>
                 </li>
               </ul>
             </div>

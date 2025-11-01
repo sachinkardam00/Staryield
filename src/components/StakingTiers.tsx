@@ -1,7 +1,5 @@
 'use client';
 
-import { useAPY } from '@/hooks/useAPY';
-
 interface StakingTier {
   id: string;
   name: string;
@@ -24,7 +22,6 @@ interface StakingTiersProps {
 }
 
 export function StakingTiers({ selectedAmount = '0', onTierSelect, className = '' }: StakingTiersProps) {
-  const { data: apyData } = useAPY({ tokenSymbol: 'BNB', refetchInterval: 25000 });
 
   const baseTiers: StakingTier[] = [
     {
@@ -35,7 +32,7 @@ export function StakingTiers({ selectedAmount = '0', onTierSelect, className = '
       minInvestment: 0.1,
       lockedPeriod: '14 Days',
       dailyReturn: '3%',
-      apyApr: `${apyData ? (apyData.apy * 0.8).toFixed(0) : '1095'}%`,
+      apyApr: '1095%/3%',
       isActive: true,
       gradient: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 197, 253, 0.1) 100%)',
       borderColor: 'rgba(59, 130, 246, 0.3)',
@@ -47,9 +44,9 @@ export function StakingTiers({ selectedAmount = '0', onTierSelect, className = '
       level: 2,
       stakeCurrency: 'BNB',
       minInvestment: 1.0,
-      lockedPeriod: '30 Days',
+      lockedPeriod: '21 Days',
       dailyReturn: '5%',
-      apyApr: `${apyData ? (apyData.apy * 1.2).toFixed(0) : '1825'}%`,
+      apyApr: '1825%/5%',
       gradient: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(196, 181, 253, 0.1) 100%)',
       borderColor: 'rgba(139, 92, 246, 0.3)',
       icon: '🌠'
@@ -59,10 +56,10 @@ export function StakingTiers({ selectedAmount = '0', onTierSelect, className = '
       name: 'Supernova Tier',
       level: 3,
       stakeCurrency: 'BNB',
-      minInvestment: 10.0,
-      lockedPeriod: '90 Days',
-      dailyReturn: '8%',
-      apyApr: `${apyData ? (apyData.apy * 1.8).toFixed(0) : '2920'}%`,
+      minInvestment: 5.0,
+      lockedPeriod: '30 Days',
+      dailyReturn: '7%',
+      apyApr: '2555%/7%',
       gradient: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(252, 211, 77, 0.1) 100%)',
       borderColor: 'rgba(245, 158, 11, 0.3)',
       icon: '💥'
@@ -70,8 +67,6 @@ export function StakingTiers({ selectedAmount = '0', onTierSelect, className = '
   ];
 
   const enteredAmount = parseFloat(selectedAmount) || 0;
-  const availableTiers = baseTiers.filter(tier => enteredAmount >= tier.minInvestment);
-  const recommendedTier = availableTiers[availableTiers.length - 1];
 
   return (
     <div className={`staking-tiers ${className}`}>
@@ -89,12 +84,7 @@ export function StakingTiers({ selectedAmount = '0', onTierSelect, className = '
         }}>
           STAKING TIERS
         </h3>
-        <div style={{
-          fontSize: '12px',
-          color: 'rgba(255, 255, 255, 0.6)'
-        }}>
-          Refreshes every 25s
-        </div>
+        <div></div>
       </div>
 
       {/* Tier Selection Buttons */}
@@ -224,7 +214,7 @@ export function StakingTiers({ selectedAmount = '0', onTierSelect, className = '
                 fontWeight: '700',
                 color: '#3b82f6'
               }}>
-                {enteredAmount > 0 ? `${enteredAmount}` : '0'} {tier.stakeCurrency}
+                0 {tier.stakeCurrency}
               </div>
             </div>
 
@@ -299,32 +289,7 @@ export function StakingTiers({ selectedAmount = '0', onTierSelect, className = '
         </div>
       ))}
 
-      {/* Recommendation Banner */}
-      {enteredAmount > 0 && recommendedTier && (
-        <div style={{
-          padding: '16px',
-          background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%)',
-          borderRadius: '12px',
-          border: '1px solid rgba(34, 197, 94, 0.3)',
-          textAlign: 'center'
-        }}>
-          <div style={{
-            fontSize: '14px',
-            color: '#22c55e',
-            fontWeight: '600',
-            marginBottom: '4px'
-          }}>
-            💡 Recommended for {enteredAmount} BNB
-          </div>
-          <div style={{
-            fontSize: '16px',
-            color: 'white',
-            fontWeight: '700'
-          }}>
-            {recommendedTier.name} - {recommendedTier.apyApr} APY
-          </div>
-        </div>
-      )}
+      {/* Recommendation Banner removed to preserve original static UI */}
     </div>
   );
 }

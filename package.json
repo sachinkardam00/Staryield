@@ -7,14 +7,20 @@
     "dev": "next dev -p 8080 --turbo",
     "build": "next build",
     "start": "next start -p 8080",
-    "lint": "next lint"
+    "lint": "next lint",
+    "compile-contracts": "cd web3 && npx hardhat compile && node scripts/export-abi.js",
+    "sync-abi": "node scripts/sync-abi.cjs",
+    "check-contract": "npx tsx scripts/check-contract.ts",
+    "check-adapter": "npx tsx scripts/check-adapter.ts",
+    "simulate-deposit": "npx tsx scripts/simulate-deposit.ts",
+    "diagnose": "npm run check-contract && npm run check-adapter && npm run simulate-deposit"
   },
   "dependencies": {
     "@rainbow-me/rainbowkit": "^2.2.9",
     "@tanstack/react-query": "^5.90.5",
     "next": "15.1.4",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
     "viem": "^2.38.4",
     "wagmi": "^2.19.0"
   },
