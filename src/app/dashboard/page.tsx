@@ -1,7 +1,7 @@
 'use client';
 
 import { CustomConnectButton } from '@/components/UI/CustomConnectButton';
-import { useAccount, useBalance, useWriteContract, useWaitForTransactionReceipt, useReadContract, usePublicClient } from 'wagmi';
+import { useAccount, useBalance, useWriteContract, useReadContract, usePublicClient } from 'wagmi';
 import { useAPY } from '@/hooks/useAPY';
 import { parseEther, formatEther } from 'viem';
 import { StakingRouterBNBABI } from '@/contracts/abi/StakingRouterBNB';
