@@ -2,6 +2,7 @@ const hre = require('hardhat');
 
 async function main() {
   const routerAddress = '0x8c1Fef12BaFC06077C06486bF4c3E0c9c1F78e78';
+  const REWARD_POOL_BNB = process.env.REWARD_POOL_BNB || '1'; // 1 BNB for rewards
   
   console.log('Deploying SimpleMockAdapter...');
   console.log('Router:', routerAddress);
@@ -17,6 +18,16 @@ async function main() {
   const adapterAddress = await adapter.getAddress();
   console.log('✅ SimpleMockAdapter deployed to:', adapterAddress);
 
+  // Fund adapter with reward pool
+  console.log(`\nFunding adapter with ${REWARD_POOL_BNB} BNB for rewards...`);
+  const fundTx = await adapter.fundRewards({ value: hre.ethers.parseEther(REWARD_POOL_BNB) });
+  await fundTx.wait();
+  console.log(`✅ Funded adapter with ${REWARD_POOL_BNB} BNB`);
+
+  // Check adapter balance
+  const adapterBalance = await hre.ethers.provider.getBalance(adapterAddress);
+  console.log('Adapter balance:', hre.ethers.formatEther(adapterBalance), 'BNB');
+
   console.log('\n📝 Next steps:');
   console.log('1. Run: allowAdapter(address, true) on router');
   console.log(`   Address: ${adapterAddress}`);
@@ -24,6 +35,8 @@ async function main() {
   console.log(`   Address: ${adapterAddress}`);
   console.log('\n3. Update .env.local:');
   console.log(`   NEXT_PUBLIC_ADAPTER_ADDRESS=${adapterAddress}`);
+  
+  console.log('\n✨ Deployment complete! Rewards pool funded and ready.');
 }
 
 main()

@@ -75,6 +75,9 @@ contract SimpleMockAdapter is IStakingAdapterBNB {
         uint256 pendingRewards = calculatePendingRewards();
 
         if (pendingRewards > 0) {
+            // Check if we have enough balance for rewards
+            require(address(this).balance >= pendingRewards, "INSUFFICIENT_BALANCE_FOR_REWARDS");
+            
             lastHarvestTime = block.timestamp;
 
             (bool success, ) = router.call{value: pendingRewards}(
@@ -85,7 +88,7 @@ contract SimpleMockAdapter is IStakingAdapterBNB {
         }
     }
 
-    /// @notice Begin unstake - just track it, don't callback
+    /// @notice Begin unstake - send funds back to router WITH proper callback
     function beginUnstake(uint256 amountWei) external onlyRouter {
         require(address(this).balance >= amountWei, "INSUFFICIENT_BALANCE");
 
@@ -100,9 +103,11 @@ contract SimpleMockAdapter is IStakingAdapterBNB {
         emit UnstakeRequested(withdrawalNonce, amountWei);
         withdrawalNonce++;
 
-        // Immediately send funds back to router WITHOUT calling notifyUnstakeReturned
-        // This avoids the reentrancy issue
-        (bool success, ) = payable(router).call{value: amountWei}("");
+        // Send funds back to router WITH notifyUnstakeReturned callback
+        // This properly notifies the router that unstaked funds have returned
+        (bool success, ) = payable(router).call{value: amountWei}(
+            abi.encodeWithSignature("notifyUnstakeReturned()")
+        );
         require(success, "TRANSFER_FAILED");
     }
 
@@ -110,6 +115,12 @@ contract SimpleMockAdapter is IStakingAdapterBNB {
     function setRouter(address router_) external onlyOwner {
         require(router_ != address(0), "ZERO_ADDRESS");
         router = router_;
+    }
+
+    /// @notice Fund reward pool (owner deposits BNB for rewards)
+    function fundRewards() external payable onlyOwner {
+        require(msg.value > 0, "MUST_SEND_BNB");
+        // Funds added to contract balance, available for rewards
     }
 
     /// @notice Emergency withdraw

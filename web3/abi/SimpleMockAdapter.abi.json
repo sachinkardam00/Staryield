@@ -1,4 +1,4 @@
-export const SIMPLE_MOCK_ADAPTER_ABI = [
+[
   {
     "inputs": [
       {
@@ -262,4 +262,4 @@ export const SIMPLE_MOCK_ADAPTER_ABI = [
     "stateMutability": "payable",
     "type": "receive"
   }
-] as const;
+]

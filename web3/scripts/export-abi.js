@@ -1,24 +1,45 @@
 const fs = require('fs');
 const path = require('path');
 
-const ARTIFACT = path.join(__dirname, '..', 'artifacts', 'contracts', 'StakingBNB.sol', 'StakingRouterBNB.json');
 const OUT_DIR = path.join(__dirname, '..', 'abi');
 
-function main() {
-  if (!fs.existsSync(ARTIFACT)) {
-    console.error('Artifact not found. Run `npm run compile` first.');
-    process.exit(1);
+const CONTRACTS = [
+  {
+    name: 'StakingRouterBNB',
+    artifact: path.join(__dirname, '..', 'artifacts', 'contracts', 'StakingBNB.sol', 'StakingRouterBNB.json')
+  },
+  {
+    name: 'SimpleMockAdapter',
+    artifact: path.join(__dirname, '..', 'artifacts', 'contracts', 'SimpleMockAdapter.sol', 'SimpleMockAdapter.json')
   }
-  const artifact = JSON.parse(fs.readFileSync(ARTIFACT, 'utf-8'));
+];
+
+function main() {
   if (!fs.existsSync(OUT_DIR)) fs.mkdirSync(OUT_DIR, { recursive: true });
 
-  const abi = artifact.abi || [];
-  const bytecode = artifact.bytecode || '';
+  for (const contract of CONTRACTS) {
+    if (!fs.existsSync(contract.artifact)) {
+      console.warn(`⚠️  Artifact not found: ${contract.name}`);
+      continue;
+    }
 
-  fs.writeFileSync(path.join(OUT_DIR, 'StakingRouterBNB.abi.json'), JSON.stringify(abi, null, 2));
-  fs.writeFileSync(path.join(OUT_DIR, 'StakingRouterBNB.bytecode.json'), JSON.stringify({ bytecode }, null, 2));
+    const artifact = JSON.parse(fs.readFileSync(contract.artifact, 'utf-8'));
+    const abi = artifact.abi || [];
+    const bytecode = artifact.bytecode || '';
 
-  console.log('Exported ABI and bytecode to web3/abi');
+    fs.writeFileSync(
+      path.join(OUT_DIR, `${contract.name}.abi.json`),
+      JSON.stringify(abi, null, 2)
+    );
+    fs.writeFileSync(
+      path.join(OUT_DIR, `${contract.name}.bytecode.json`),
+      JSON.stringify({ bytecode }, null, 2)
+    );
+
+    console.log(`✅ Exported ${contract.name}`);
+  }
+
+  console.log('\n✨ All ABIs exported to web3/abi');
 }
 
 main();
