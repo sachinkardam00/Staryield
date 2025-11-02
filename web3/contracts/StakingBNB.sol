@@ -88,11 +88,31 @@ interface IStakingAdapterBNB {
     function setRouter(address router_) external;
 }
 
+/// Loyalty Points interface
+interface ILoyaltyPoints {
+    function recordStake(
+        address user,
+        uint256 amount,
+        address referrer
+    ) external;
+    function updateStake(
+        address user,
+        uint256 stakeId,
+        uint256 newAmount,
+        bool isUnstake
+    ) external;
+}
+
 /// Router (user entrypoint)
 contract StakingRouterBNB is Ownable, PausableCore, ReentrancyGuard {
     // Adapter allowlist and selection
     address public adapter;
     mapping(address => bool) public allowedAdapter;
+
+    // Loyalty Points integration
+    ILoyaltyPoints public loyaltyPoints;
+    mapping(address => uint256) public userStakeIds; // Track stake IDs for loyalty
+    mapping(address => address) public userReferrers; // Track referrers
 
     // Rewards fee (rewards only; not principal)
     uint256 public feeBps; // out of 10_000
@@ -188,6 +208,16 @@ contract StakingRouterBNB is Ownable, PausableCore, ReentrancyGuard {
         emit UnbondingPeriodUpdated(secondsPeriod);
     }
 
+    function setLoyaltyPoints(address _loyaltyPoints) external onlyOwner {
+        loyaltyPoints = ILoyaltyPoints(_loyaltyPoints);
+    }
+
+    function setReferrer(address user, address referrer) external onlyOwner {
+        if (userReferrers[user] == address(0)) {
+            userReferrers[user] = referrer;
+        }
+    }
+
     // User deposit: send native BNB in msg.value
     function depositBNB(
         uint256 deadline
@@ -211,6 +241,13 @@ contract StakingRouterBNB is Ownable, PausableCore, ReentrancyGuard {
         // Update principal and delegate
         totalPrincipal += msg.value;
         IStakingAdapterBNB(adapter).stake{value: msg.value}();
+
+        // Record stake in loyalty points system
+        if (address(loyaltyPoints) != address(0)) {
+            address referrer = userReferrers[msg.sender];
+            loyaltyPoints.recordStake(msg.sender, msg.value, referrer);
+            userStakeIds[msg.sender]++;
+        }
 
         emit Deposited(msg.sender, msg.value, sharesMinted);
     }
@@ -236,7 +273,8 @@ contract StakingRouterBNB is Ownable, PausableCore, ReentrancyGuard {
     }
 
     // Adapter callback with rewards (single call with msg.value)
-    function notifyRewardsReceived() external payable nonReentrant {
+    // NOTE: No nonReentrant here - it's called within harvest()'s nonReentrant context
+    function notifyRewardsReceived() external payable {
         if (msg.sender != adapter) revert NotRouter();
         uint256 rewards = msg.value;
         if (rewards == 0) return;
@@ -325,7 +363,8 @@ contract StakingRouterBNB is Ownable, PausableCore, ReentrancyGuard {
     }
 
     // Adapter callback when principal returns (single call with msg.value)
-    function notifyUnstakeReturned() external payable nonReentrant {
+    // NOTE: No nonReentrant here - it's called within requestUnstake()'s nonReentrant context
+    function notifyUnstakeReturned() external payable {
         if (msg.sender != adapter) revert NotRouter();
         // No state to update here; funds increase router balance and will satisfy queued withdrawals.
     }
@@ -345,6 +384,24 @@ contract StakingRouterBNB is Ownable, PausableCore, ReentrancyGuard {
         emit UnbondWithdrawn(msg.sender, index, r.bnbAmount);
     }
 
+    /// @notice Force withdraw without cooldown (TESTING ONLY - removes in production)
+    /// @dev Allows instant withdrawal bypassing cooldown period
+    /// @param index The unbond request index
+    function forceWithdrawUnbonded(uint256 index) external nonReentrant {
+        if (index >= unbondQueue.length) revert InvalidAmount();
+        UnbondReq storage r = unbondQueue[index];
+        if (r.user != msg.sender) revert NotRequestOwner();
+        if (r.claimed) revert AlreadyClaimed();
+        // NOTE: Skip cooldown check for testing
+        // if (block.timestamp < r.readyAt) revert CooldownNotFinished();
+
+        r.claimed = true;
+        (bool ok, ) = payable(msg.sender).call{value: r.bnbAmount}("");
+        if (!ok) revert NativeTransferFailed();
+
+        emit UnbondWithdrawn(msg.sender, index, r.bnbAmount);
+    }
+
     // Public view
     function queueLength() external view returns (uint256) {
         return unbondQueue.length;
@@ -352,7 +409,9 @@ contract StakingRouterBNB is Ownable, PausableCore, ReentrancyGuard {
 
     /// @notice Emergency withdraw excess BNB (owner only)
     /// @dev Only withdraw excess BNB that is not allocated to users
-    function emergencyWithdrawBNB(uint256 amount) external onlyOwner nonReentrant {
+    function emergencyWithdrawBNB(
+        uint256 amount
+    ) external onlyOwner nonReentrant {
         require(address(this).balance >= amount, "INSUFFICIENT_BALANCE");
         (bool ok, ) = payable(owner).call{value: amount}("");
         if (!ok) revert NativeTransferFailed();

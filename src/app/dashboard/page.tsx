@@ -2,27 +2,43 @@
 
 import { CustomConnectButton } from '@/components/UI/CustomConnectButton';
 import { FastLink } from '@/components/Navigation/FastLink';
-import { useAccount, useBalance, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
+import { useAccount, useBalance, useWriteContract, useWaitForTransactionReceipt, useReadContract, usePublicClient } from 'wagmi';
 import { useAPY } from '@/hooks/useAPY';
 import { parseEther, formatEther } from 'viem';
-import { STAKING_ROUTER_BNB_ABI } from '@/contracts/abi/StakingRouterBNB';
-import { SIMPLE_MOCK_ADAPTER_ABI } from '@/contracts/abi/SimpleMockAdapter';
-import { getRouterAddress } from '@/contracts/addresses';
+import { StakingRouterBNBABI } from '@/contracts/abi/StakingRouterBNB';
+import { SimpleMockAdapterABI } from '@/contracts/abi/SimpleMockAdapter';
+import { LoyaltyPointsABI } from '@/contracts/abi/LoyaltyPoints';
+import { ReferralSystemABI } from '@/contracts/abi/ReferralSystem';
+import { getRouterAddress, getLoyaltyAddress, getReferralAddress } from '@/contracts/addresses';
 import Link from 'next/link';
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 export default function DashboardPage() {
   const { address, isConnected } = useAccount();
   const { data: balance } = useBalance({
     address: address,
   });
+  const publicClient = usePublicClient();
   const [activeTab, setActiveTab] = useState('tab1');
+  const [referrerAddress, setReferrerAddress] = useState<string | null>(null);
+  const [hasRegistered, setHasRegistered] = useState(false);
+  const searchParams = useSearchParams();
   const routerAddress = useMemo(() => getRouterAddress(), []);
+  const referralAddress = useMemo(() => getReferralAddress(), []);
+  
+  // Loading states for transactions
+  const [isStaking, setIsStaking] = useState(false);
+  const [isUnstaking, setIsUnstaking] = useState(false);
+  const [isClaiming, setIsClaiming] = useState(false);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [isForceWithdrawing, setIsForceWithdrawing] = useState(false);
+  const [txStatus, setTxStatus] = useState<string>('');
 
   // Read user's staked shares
   const { data: userShares, refetch: refetchShares } = useReadContract({
     address: routerAddress,
-    abi: STAKING_ROUTER_BNB_ABI,
+    abi: StakingRouterBNBABI,
     functionName: 'sharesOf',
     args: address ? [address] : undefined,
     query: { enabled: !!address && !!routerAddress }
@@ -31,7 +47,7 @@ export default function DashboardPage() {
   // Read total principal to calculate BNB value
   const { data: totalPrincipal } = useReadContract({
     address: routerAddress,
-    abi: STAKING_ROUTER_BNB_ABI,
+    abi: StakingRouterBNBABI,
     functionName: 'totalPrincipal',
     query: { enabled: !!routerAddress }
   });
@@ -39,7 +55,7 @@ export default function DashboardPage() {
   // Read total shares
   const { data: totalShares } = useReadContract({
     address: routerAddress,
-    abi: STAKING_ROUTER_BNB_ABI,
+    abi: StakingRouterBNBABI,
     functionName: 'totalShares',
     query: { enabled: !!routerAddress }
   });
@@ -47,7 +63,7 @@ export default function DashboardPage() {
   // Read pending rewards from router (already harvested rewards)
   const { data: pendingRewards, refetch: refetchRewards } = useReadContract({
     address: routerAddress,
-    abi: STAKING_ROUTER_BNB_ABI,
+    abi: StakingRouterBNBABI,
     functionName: 'pendingRewards',
     args: address ? [address] : undefined,
     query: { enabled: !!address && !!routerAddress }
@@ -57,7 +73,7 @@ export default function DashboardPage() {
   const adapterAddress = process.env.NEXT_PUBLIC_ADAPTER_ADDRESS as `0x${string}`;
   const { data: adapterPendingRewards, refetch: refetchAdapterRewards } = useReadContract({
     address: adapterAddress,
-    abi: SIMPLE_MOCK_ADAPTER_ABI,
+    abi: SimpleMockAdapterABI,
     functionName: 'calculatePendingRewards',
     query: { 
       enabled: !!adapterAddress,
@@ -65,10 +81,124 @@ export default function DashboardPage() {
     }
   });
 
-  // Total pending rewards = router pending + adapter pending (memoized)
+  // Calculate user's share of adapter rewards based on their stake proportion
+  const userAdapterRewards = useMemo(() => {
+    if (!userShares || !totalShares || totalShares === BigInt(0) || !adapterPendingRewards) {
+      return BigInt(0);
+    }
+    // User's rewards = (their shares / total shares) * total adapter rewards
+    return (userShares * adapterPendingRewards) / totalShares;
+  }, [userShares, totalShares, adapterPendingRewards]);
+
+  // ============ Loyalty Points Integration ============
+  const loyaltyAddress = useMemo(() => getLoyaltyAddress(), []);
+
+  // Read user's loyalty stats
+  const { data: loyaltyStats, refetch: refetchLoyalty } = useReadContract({
+    address: loyaltyAddress,
+    abi: LoyaltyPointsABI,
+    functionName: 'getUserStats',
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address && !!loyaltyAddress,
+      refetchInterval: 10000 // Refresh every 10 seconds
+    }
+  });
+
+  // Read total pending stars (unclaimed)
+  const { data: pendingStars } = useReadContract({
+    address: loyaltyAddress,
+    abi: LoyaltyPointsABI,
+    functionName: 'getTotalPendingStars',
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address && !!loyaltyAddress,
+      refetchInterval: 10000
+    }
+  });
+
+  // Read referral count from loyalty contract
+  const { data: loyaltyReferralCount } = useReadContract({
+    address: loyaltyAddress,
+    abi: LoyaltyPointsABI,
+    functionName: 'getUserStats',
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address && !!loyaltyAddress,
+      select: (data) => data ? Number(data[3]) : 0 // Extract referralCount from tuple
+    }
+  });
+
+  // Parse loyalty stats - ensure all values are numbers
+  const totalStars = loyaltyStats && loyaltyStats[0] !== undefined ? Number(loyaltyStats[0]) : 0;
+  const stakingStars = loyaltyStats && loyaltyStats[1] !== undefined ? Number(loyaltyStats[1]) : 0;
+  const referralStars = loyaltyStats && loyaltyStats[2] !== undefined ? Number(loyaltyStats[2]) : 0;
+  // Pending stars are now scaled by 1e18, so divide to get actual value
+  const totalPendingStarsNum = pendingStars !== undefined ? Number(pendingStars) / 1e18 : 0;
+  const referralCount = loyaltyReferralCount !== undefined ? Number(loyaltyReferralCount) : 0;
+
+  // ============ Referral System Integration ============
+  
+  // Check if user is already registered
+  const { data: userReferralData } = useReadContract({
+    address: referralAddress,
+    abi: ReferralSystemABI,
+    functionName: 'users',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address && !!referralAddress }
+  });
+
+  // Register referral hook
+  const { writeContract: registerReferral, isPending: isRegistering } = useWriteContract();
+
+  // Capture referrer from URL
+  useEffect(() => {
+    const ref = searchParams?.get('ref');
+    if (ref && ref.startsWith('0x')) {
+      setReferrerAddress(ref);
+      // Store in localStorage for persistence
+      localStorage.setItem('referrer', ref);
+    } else {
+      // Try to get from localStorage
+      const storedRef = localStorage.getItem('referrer');
+      if (storedRef) {
+        setReferrerAddress(storedRef);
+      }
+    }
+  }, [searchParams]);
+
+  // Auto-register referral when user connects wallet
+  useEffect(() => {
+    if (!address || !referralAddress || !referrerAddress || hasRegistered) return;
+    
+    // Check if already registered
+    const isRegistered = userReferralData && userReferralData[0]; // isRegistered field
+    if (isRegistered) {
+      setHasRegistered(true);
+      return;
+    }
+
+    // Auto-register with referrer
+    if (referrerAddress && referrerAddress.toLowerCase() !== address.toLowerCase()) {
+      try {
+        registerReferral({
+          address: referralAddress,
+          abi: ReferralSystemABI,
+          functionName: 'registerReferral',
+          args: [referrerAddress as `0x${string}`],
+        });
+        setHasRegistered(true);
+        console.log('✅ Referral registered:', referrerAddress);
+      } catch (error) {
+        console.error('Failed to register referral:', error);
+      }
+    }
+  }, [address, referralAddress, referrerAddress, userReferralData, hasRegistered, registerReferral]);
+
+  // Total pending rewards = router pending + user's share of adapter pending (memoized)
   const totalPendingRewards = useMemo(() => 
-    (pendingRewards || BigInt(0)) + (adapterPendingRewards || BigInt(0)),
-    [pendingRewards, adapterPendingRewards]
+    (pendingRewards || BigInt(0)) + userAdapterRewards,
+    [pendingRewards, userAdapterRewards]
   );
 
   // Calculate user's staked BNB amount (memoized)
@@ -175,25 +305,52 @@ export default function DashboardPage() {
     }
     const value = parseEther(amountStr as `${number}`);
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 1800);
+    
+    setIsStaking(true);
+    setTxStatus('Confirming transaction in wallet...');
+    
     try {
-      await writeContractAsync({
-        abi: STAKING_ROUTER_BNB_ABI,
+      setTxStatus('Sending transaction...');
+      const hash = await writeContractAsync({
+        abi: StakingRouterBNBABI,
         address: routerAddress,
         functionName: 'depositBNB',
         args: [deadline],
         value,
       });
-      alert('Stake transaction submitted. Refreshing data...');
-      // Refresh data after successful stake
+      
+      setTxStatus('Transaction submitted! Waiting for confirmation...');
+      
+      // Wait a bit for transaction to be mined
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      setTxStatus('Refreshing data...');
+      // Refresh all data after successful stake
+      await Promise.all([
+        refetchShares(),
+        refetchLoyalty()
+      ]);
+      
+      setTxStatus('✅ Stake successful!');
       setTimeout(() => {
-        refetchShares();
-        refetchRewards();
+        setTxStatus('');
+        setIsStaking(false);
       }, 2000);
+      
+      // Clear input
+      const amountInput = document.getElementById(
+        activeTab === 'tab1' ? 'stake-input-1' : 
+        activeTab === 'tab2' ? 'stake-input-2' : 'stake-input-3'
+      ) as HTMLInputElement;
+      if (amountInput) amountInput.value = '';
+      
     } catch (e: any) {
       console.error(e);
+      setTxStatus('');
+      setIsStaking(false);
       alert(e?.shortMessage || e?.message || 'Failed to stake');
     }
-  }, [isConnected, routerAddress, writeContractAsync, refetchShares, refetchRewards, getActiveInputValue]);
+  }, [isConnected, routerAddress, writeContractAsync, refetchShares, refetchLoyalty, getActiveInputValue, activeTab]);
 
   const handleUnstake = useCallback(async () => {
     if (!isConnected) {
@@ -254,6 +411,9 @@ export default function DashboardPage() {
       }
     }
 
+    setIsUnstaking(true);
+    setTxStatus('Preparing unstake request...');
+    
     try {
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 1800);
       
@@ -264,19 +424,30 @@ export default function DashboardPage() {
         routerAddress
       });
       
+      setTxStatus('Confirm transaction in wallet...');
       await writeContractAsync({
-        abi: STAKING_ROUTER_BNB_ABI,
+        abi: StakingRouterBNBABI,
         address: routerAddress,
         functionName: 'requestUnstake',
         args: [sharesToUnstake, deadline],
       });
       
-      alert(`Unstake request submitted for ${formatEther(sharesToUnstake)} BNB! Your BNB will be available for withdrawal after the unbonding period (currently 0 seconds).`);
+      setTxStatus('Transaction submitted! Waiting for confirmation...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      setTxStatus('Refreshing data...');
+      await refetchShares();
+      
+      setTxStatus(`✅ Unstake request submitted for ${formatEther(sharesToUnstake)} BNB!`);
       setTimeout(() => {
-        refetchShares();
-      }, 2000);
+        setTxStatus('');
+        setIsUnstaking(false);
+      }, 3000);
+      
     } catch (e: any) {
       console.error('Unstake error:', e);
+      setTxStatus('');
+      setIsUnstaking(false);
       const errorMsg = e?.shortMessage || e?.message || JSON.stringify(e);
       alert('Failed to unstake: ' + errorMsg);
     }
@@ -296,27 +467,128 @@ export default function DashboardPage() {
     const indexStr = prompt('Enter the unbond queue index (usually 0 for first unstake):');
     if (!indexStr) return;
 
+    setIsWithdrawing(true);
+    setTxStatus('Preparing withdrawal...');
+    
     try {
       const index = BigInt(indexStr);
       console.log('Withdrawing unbonded funds, index:', index.toString());
 
+      setTxStatus('Confirm transaction in wallet...');
       await writeContractAsync({
-        abi: STAKING_ROUTER_BNB_ABI,
+        abi: StakingRouterBNBABI,
         address: routerAddress,
         functionName: 'withdrawUnbonded',
         args: [index],
       });
       
-      alert('Withdrawal successful! Your BNB has been returned to your wallet.');
+      setTxStatus('Transaction submitted! Waiting for confirmation...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      setTxStatus('Refreshing data...');
+      await refetchShares();
+      
+      setTxStatus('✅ Withdrawal successful! BNB returned to your wallet.');
       setTimeout(() => {
-        refetchShares();
-      }, 2000);
+        setTxStatus('');
+        setIsWithdrawing(false);
+      }, 3000);
+      
     } catch (e: any) {
       console.error('Withdraw error:', e);
+      setTxStatus('');
+      setIsWithdrawing(false);
       const errorMsg = e?.shortMessage || e?.message || JSON.stringify(e);
       alert('Failed to withdraw: ' + errorMsg);
     }
   }, [isConnected, routerAddress, writeContractAsync, refetchShares]);
+
+  const handleForceWithdraw = useCallback(async () => {
+    if (!isConnected || !address) {
+      alert('Please connect your wallet first');
+      return;
+    }
+    if (!routerAddress || !publicClient) {
+      alert('Router address or client missing');
+      return;
+    }
+
+    setIsForceWithdrawing(true);
+    setTxStatus('🔍 Finding your unclaimed unbond requests...');
+    
+    try {
+      // Get queue length using publicClient
+      const queueLength = await publicClient.readContract({
+        address: routerAddress,
+        abi: StakingRouterBNBABI,
+        functionName: 'queueLength',
+      }) as bigint;
+      
+      console.log('Checking', queueLength.toString(), 'unbond requests...');
+      
+      // Find first unclaimed request belonging to user
+      let foundIndex = -1;
+      for (let i = 0; i < Number(queueLength); i++) {
+        const result = await publicClient.readContract({
+          address: routerAddress,
+          abi: StakingRouterBNBABI,
+          functionName: 'unbondQueue',
+          args: [BigInt(i)],
+        }) as any;
+        
+        // The contract returns an array: [user, shares, bnbAmount, readyAt, claimed]
+        const reqUser = result[0] || result.user;
+        const reqBnbAmount = result[2] || result.bnbAmount;
+        const reqClaimed = result[4] !== undefined ? result[4] : result.claimed;
+        
+        console.log(`Index ${i}: user=${reqUser}, claimed=${reqClaimed}`);
+        
+        if (reqUser && reqUser.toLowerCase() === address.toLowerCase() && !reqClaimed) {
+          foundIndex = i;
+          console.log('✅ Found unclaimed request at index:', i, 'Amount:', formatEther(reqBnbAmount), 'BNB');
+          break;
+        }
+      }
+      
+      if (foundIndex === -1) {
+        alert('No unclaimed unbond requests found. Please unstake first.');
+        setIsForceWithdrawing(false);
+        setTxStatus('');
+        return;
+      }
+      
+      const index = BigInt(foundIndex);
+      setTxStatus('⚡ Force withdrawing index ' + foundIndex + ' (bypassing cooldown)...');
+      console.log('⚠️ FORCE withdrawing (bypassing cooldown), index:', index.toString());
+
+      setTxStatus('Confirm transaction in wallet...');
+      await writeContractAsync({
+        abi: StakingRouterBNBABI,
+        address: routerAddress,
+        functionName: 'forceWithdrawUnbonded',
+        args: [index],
+      });
+      
+      setTxStatus('Transaction submitted! Waiting for confirmation...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      setTxStatus('Refreshing data...');
+      await refetchShares();
+      
+      setTxStatus('✅ Force withdrawal successful! BNB returned instantly.');
+      setTimeout(() => {
+        setTxStatus('');
+        setIsForceWithdrawing(false);
+      }, 3000);
+      
+    } catch (e: any) {
+      console.error('Force withdraw error:', e);
+      setTxStatus('');
+      setIsForceWithdrawing(false);
+      const errorMsg = e?.shortMessage || e?.message || JSON.stringify(e);
+      alert('Failed to force withdraw: ' + errorMsg);
+    }
+  }, [isConnected, address, routerAddress, publicClient, writeContractAsync, refetchShares]);
 
   const handleHarvest = useCallback(async () => {
     if (!isConnected || !routerAddress) return;
@@ -324,7 +596,7 @@ export default function DashboardPage() {
     try {
       console.log('Harvesting rewards...');
       await writeContractAsync({
-        abi: STAKING_ROUTER_BNB_ABI,
+        abi: StakingRouterBNBABI,
         address: routerAddress,
         functionName: 'harvest',
         args: [],
@@ -347,6 +619,9 @@ export default function DashboardPage() {
       return;
     }
     
+    setIsClaiming(true);
+    setTxStatus('Checking pending rewards...');
+    
     try {
       // Check if there are rewards to claim
       const adapterAddress = process.env.NEXT_PUBLIC_ADAPTER_ADDRESS as `0x${string}`;
@@ -356,26 +631,30 @@ export default function DashboardPage() {
       console.log('Adapter pending:', adapterPendingRewards?.toString());
       
       if (!adapterPendingRewards || adapterPendingRewards === BigInt(0)) {
+        setTxStatus('');
+        setIsClaiming(false);
         alert('No rewards to harvest from adapter yet. Please wait for rewards to accumulate.');
         return;
       }
       
       // Step 1: Harvest rewards from adapter
+      setTxStatus('Step 1/2: Harvesting rewards from adapter...');
       console.log('Step 1: Harvesting rewards from adapter...');
       const harvestTx = await writeContractAsync({
-        abi: STAKING_ROUTER_BNB_ABI,
+        abi: StakingRouterBNBABI,
         address: routerAddress,
         functionName: 'harvest',
         args: [],
       });
       
       console.log('Harvest transaction submitted:', harvestTx);
-      alert('Step 1/2: Harvest transaction submitted! Waiting for confirmation...');
+      setTxStatus('Step 1/2: Harvest transaction submitted! Waiting for confirmation...');
       
       // Wait for harvest confirmation (3 seconds)
       await new Promise(resolve => setTimeout(resolve, 3000));
       
       // Refetch to get updated pendingRewards
+      setTxStatus('Updating rewards data...');
       await refetchRewards();
       await refetchAdapterRewards();
       
@@ -383,27 +662,32 @@ export default function DashboardPage() {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Step 2: Claim the harvested rewards
+      setTxStatus('Step 2/2: Claiming harvested rewards...');
       console.log('Step 2: Claiming harvested rewards...');
       const claimTx = await writeContractAsync({
-        abi: STAKING_ROUTER_BNB_ABI,
+        abi: StakingRouterBNBABI,
         address: routerAddress,
         functionName: 'claim',
         args: [],
       });
       
       console.log('Claim transaction submitted:', claimTx);
-      alert('Step 2/2: Claim transaction submitted! Your rewards are being transferred to your wallet...');
+      setTxStatus('Step 2/2: Claim transaction submitted! Waiting for confirmation...');
       
       // Wait for claim confirmation and refresh all data
-      setTimeout(async () => {
-        await refetchRewards();
-        await refetchAdapterRewards();
-        alert('✅ Rewards claimed successfully! Check your wallet balance. The page will refresh in a moment.');
-        
-        // Force page reload to show updated balance
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      setTxStatus('Refreshing all data...');
+      await Promise.all([
+        refetchRewards(),
+        refetchAdapterRewards(),
+        refetchShares()
+      ]);
+      
+      setTxStatus('✅ Rewards claimed successfully!');
+      setTimeout(() => {
+        setTxStatus('');
+        setIsClaiming(false);
       }, 3000);
       
     } catch (e: any) {
@@ -431,6 +715,61 @@ export default function DashboardPage() {
 
   return (
     <>
+      {/* Loading Overlay */}
+      {(isStaking || isUnstaking || isClaiming || isWithdrawing || isForceWithdrawing) && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          backdropFilter: 'blur(5px)'
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #1a1f3a 0%, #2d3561 100%)',
+            padding: '40px 50px',
+            borderRadius: '20px',
+            textAlign: 'center',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            maxWidth: '500px'
+          }}>
+            <div style={{
+              width: '60px',
+              height: '60px',
+              border: '4px solid rgba(59, 130, 246, 0.3)',
+              borderTop: '4px solid #3b82f6',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 20px'
+            }}></div>
+            <h3 style={{color: '#fff', marginBottom: '10px', fontSize: '24px'}}>
+              {isStaking && '🚀 Staking...'}
+              {isUnstaking && '⏳ Unstaking...'}
+              {isClaiming && '💰 Claiming Rewards...'}
+              {isWithdrawing && '💸 Withdrawing...'}
+              {isForceWithdrawing && '⚡ Force Withdrawing...'}
+            </h3>
+            <p style={{color: '#94a3b8', fontSize: '16px', margin: 0}}>
+              {txStatus || 'Please wait...'}
+            </p>
+          </div>
+        </div>
+      )}
+      
+      {/* Add spinner animation */}
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+      
       <div className="admin-header">
         <div className="hesder-video">
           <video autoPlay muted loop>
@@ -576,15 +915,41 @@ export default function DashboardPage() {
                     <p style={{fontSize: '12px', color: '#888', marginTop: '5px', marginBottom: '10px'}}>
                       Click &quot;Claim Rewards&quot; to harvest and claim in one transaction
                     </p>
-                    <button className="btn btn-blue" onClick={handleClaim} style={{width: '100%'}}>
-                      <i className="fa-regular fa-hand-pointer"></i> Claim Rewards
+                    <button 
+                      className="btn btn-blue" 
+                      onClick={handleClaim} 
+                      disabled={isClaiming || isStaking || isUnstaking || isWithdrawing || isForceWithdrawing}
+                      style={{width: '100%', opacity: isClaiming ? 0.6 : 1}}
+                    >
+                      <i className="fa-regular fa-hand-pointer"></i> {isClaiming ? 'Claiming...' : 'Claim Rewards'}
                     </button>
-                    <button className="btn btn-red" onClick={handleUnstake} style={{marginTop: '10px', display: 'block', width: '100%'}}>
-                      <i className="fa-solid fa-arrow-down"></i> Request Unstake
+                    <button 
+                      className="btn btn-red" 
+                      onClick={handleUnstake} 
+                      disabled={isUnstaking || isStaking || isClaiming || isWithdrawing || isForceWithdrawing}
+                      style={{marginTop: '10px', display: 'block', width: '100%', opacity: isUnstaking ? 0.6 : 1}}
+                    >
+                      <i className="fa-solid fa-arrow-down"></i> {isUnstaking ? 'Unstaking...' : 'Request Unstake'}
                     </button>
-                    <button className="btn btn-green" onClick={handleWithdraw} style={{marginTop: '10px', display: 'block', width: '100%'}}>
-                      <i className="fa-solid fa-money-bill-wave"></i> Withdraw Unstaked
+                    <button 
+                      className="btn btn-green" 
+                      onClick={handleWithdraw} 
+                      disabled={isWithdrawing || isStaking || isClaiming || isUnstaking || isForceWithdrawing}
+                      style={{marginTop: '10px', display: 'block', width: '100%', opacity: isWithdrawing ? 0.6 : 1}}
+                    >
+                      <i className="fa-solid fa-money-bill-wave"></i> {isWithdrawing ? 'Withdrawing...' : 'Withdraw Unstaked'}
                     </button>
+                    <button 
+                      className="btn btn-skyblue" 
+                      onClick={handleForceWithdraw} 
+                      disabled={isForceWithdrawing || isStaking || isClaiming || isUnstaking || isWithdrawing}
+                      style={{marginTop: '10px', display: 'block', width: '100%', fontSize: '13px', opacity: isForceWithdrawing ? 0.6 : 1}}
+                    >
+                      <i className="fa-solid fa-bolt"></i> {isForceWithdrawing ? 'Force Withdrawing...' : 'Force Withdraw (Testing)'}
+                    </button>
+                    <p style={{fontSize: '10px', color: '#ff9800', marginTop: '5px', textAlign: 'center'}}>
+                      ⚠️ Bypasses cooldown - Testing only
+                    </p>
                   </div>
                 </div>
               </div>
@@ -660,8 +1025,13 @@ export default function DashboardPage() {
                                 </button>
                               </div>
                               <div className="s-button">
-                                <button className="btn btn-skyblue normal full" onClick={handleStake}>
-                                  Stake
+                                <button 
+                                  className="btn btn-skyblue normal full" 
+                                  onClick={handleStake}
+                                  disabled={isStaking || isClaiming || isUnstaking || isWithdrawing || isForceWithdrawing}
+                                  style={{opacity: isStaking ? 0.6 : 1}}
+                                >
+                                  {isStaking ? 'Staking...' : 'Stake'}
                                 </button>
                               </div>
                             </div>
@@ -719,8 +1089,13 @@ export default function DashboardPage() {
                                 </button>
                               </div>
                               <div className="s-button">
-                                <button className="btn btn-skyblue normal full" onClick={handleStake}>
-                                  Stake
+                                <button 
+                                  className="btn btn-skyblue normal full" 
+                                  onClick={handleStake}
+                                  disabled={isStaking || isClaiming || isUnstaking || isWithdrawing || isForceWithdrawing}
+                                  style={{opacity: isStaking ? 0.6 : 1}}
+                                >
+                                  {isStaking ? 'Staking...' : 'Stake'}
                                 </button>
                               </div>
                             </div>
@@ -778,8 +1153,13 @@ export default function DashboardPage() {
                                 </button>
                               </div>
                               <div className="s-button">
-                                <button className="btn btn-skyblue normal full" onClick={handleStake}>
-                                  Stake
+                                <button 
+                                  className="btn btn-skyblue normal full" 
+                                  onClick={handleStake}
+                                  disabled={isStaking || isClaiming || isUnstaking || isWithdrawing || isForceWithdrawing}
+                                  style={{opacity: isStaking ? 0.6 : 1}}
+                                >
+                                  {isStaking ? 'Staking...' : 'Stake'}
                                 </button>
                               </div>
                             </div>
@@ -800,7 +1180,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="stat-details">
                       <h4>Total Stars</h4>
-                      <h3>14,120</h3>
+                      <h3>{isConnected ? (totalStars + totalPendingStarsNum).toLocaleString() : '0'}</h3>
                     </div>
                   </li>
                   <li className="d-flex align-items-center">
@@ -809,7 +1189,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="stat-details">
                       <h4>Stars earned by staking</h4>
-                      <h3>5000</h3>
+                      <h3>{isConnected ? stakingStars.toLocaleString() : '0'}</h3>
                     </div>
                   </li>
                   <li className="d-flex align-items-center">
@@ -818,7 +1198,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="stat-details">
                       <h4>Stars earned by friend&apos;s staking</h4>
-                      <h3>8000</h3>
+                      <h3>{isConnected ? referralStars.toLocaleString() : '0'}</h3>
                     </div>
                   </li>
                   <li className="d-flex align-items-center">
@@ -827,7 +1207,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="stat-details">
                       <h4>Referrals</h4>
-                      <h3>1800</h3>
+                      <h3>{isConnected ? referralCount.toLocaleString() : '0'}</h3>
                     </div>
                   </li>
                 </ul>

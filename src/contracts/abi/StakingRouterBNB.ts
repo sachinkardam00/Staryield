@@ -1,7 +1,4 @@
-// Auto-generated from web3/abi/StakingRouterBNB.abi.json
-// Do not edit manually - run 'npm run sync-abi' to update
-
-export const STAKING_ROUTER_BNB_ABI = [
+export const StakingRouterBNBABI = [
   {
     "inputs": [
       {
@@ -427,6 +424,19 @@ export const STAKING_ROUTER_BNB_ABI = [
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "emergencyWithdrawBNB",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "feeBps",
     "outputs": [
@@ -453,10 +463,36 @@ export const STAKING_ROUTER_BNB_ABI = [
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      }
+    ],
+    "name": "forceWithdrawUnbonded",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "harvest",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "loyaltyPoints",
+    "outputs": [
+      {
+        "internalType": "contract ILoyaltyPoints",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -653,6 +689,37 @@ export const STAKING_ROUTER_BNB_ABI = [
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "_loyaltyPoints",
+        "type": "address"
+      }
+    ],
+    "name": "setLoyaltyPoints",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "referrer",
+        "type": "address"
+      }
+    ],
+    "name": "setReferrer",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "secondsPeriod",
         "type": "uint256"
@@ -778,6 +845,44 @@ export const STAKING_ROUTER_BNB_ABI = [
     "name": "unpause",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "userReferrers",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "userStakeIds",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {

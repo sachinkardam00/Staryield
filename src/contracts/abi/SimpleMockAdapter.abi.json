@@ -1,5 +1,4 @@
-// Auto-generated from web3/abi/SimpleMockAdapter.abi.json
-export const SimpleMockAdapterABI = [
+[
   {
     "inputs": [
       {
@@ -263,4 +262,4 @@ export const SimpleMockAdapterABI = [
     "stateMutability": "payable",
     "type": "receive"
   }
-] as const;
+]

@@ -34,6 +34,16 @@ export function getAdapterAddress(): `0x${string}` | undefined {
   return addr && addr !== '0x0000000000000000000000000000000000000000' ? addr : undefined;
 }
 
+export function getReferralAddress(): `0x${string}` | undefined {
+  const addr = process.env.NEXT_PUBLIC_REFERRAL_ADDRESS as `0x${string}` | undefined;
+  return addr && addr !== '0x0000000000000000000000000000000000000000' ? addr : undefined;
+}
+
+export function getLoyaltyAddress(): `0x${string}` | undefined {
+  const addr = process.env.NEXT_PUBLIC_LOYALTY_ADDRESS as `0x${string}` | undefined;
+  return addr && addr !== '0x0000000000000000000000000000000000000000' ? addr : undefined;
+}
+
 // Common token addresses used for integrations
 export const COMMON_TOKENS: Record<string, AddressMap> = {
   // Wrapped BNB (WBNB)

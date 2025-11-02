@@ -11,20 +11,24 @@
 ## Root Cause Analysis
 
 ### Issue 1: Claim Rewards
+
 **Problem:** SimpleMockAdapter's `harvest()` function calculates time-based rewards (10% APY) but the adapter had insufficient BNB balance to actually send the rewards to the router.
 
 **Flow:**
+
 1. User clicks "Claim Rewards"
-2. Frontend calls `router.harvest()`  
+2. Frontend calls `router.harvest()`
 3. Router calls `adapter.harvest()`
 4. Adapter calculates rewards: `(totalStaked * 1000 * timeElapsed) / (10000 * 31536000)`
 5. Adapter tries to send rewards via `router.notifyRewardsReceived{value: rewards}()`
 6. **FAILS**: Adapter has 0 BNB balance → transaction reverts OR sends 0
 
-### Issue 2: Withdrawal  
+### Issue 2: Withdrawal
+
 **Problem:** SimpleMockAdapter's `beginUnstake()` sent funds directly to router without calling the proper callback.
 
 **Code:**
+
 ```solidity
 // OLD - WRONG
 (bool success, ) = payable(router).call{value: amountWei}("");
@@ -39,6 +43,7 @@ This hits router's `receive()` function instead of `notifyUnstakeReturned()`, so
 **File:** `web3/contracts/SimpleMockAdapter.sol`
 
 #### A. Added Balance Check in harvest()
+
 ```solidity
 function harvest() external onlyRouter {
     uint256 pendingRewards = calculatePendingRewards();
@@ -46,7 +51,7 @@ function harvest() external onlyRouter {
     if (pendingRewards > 0) {
         // NEW: Check if we have enough balance for rewards
         require(address(this).balance >= pendingRewards, "INSUFFICIENT_BALANCE_FOR_REWARDS");
-        
+
         lastHarvestTime = block.timestamp;
         (bool success, ) = router.call{value: pendingRewards}(
             abi.encodeWithSignature("notifyRewardsReceived()")
@@ -58,6 +63,7 @@ function harvest() external onlyRouter {
 ```
 
 #### B. Fixed beginUnstake() Callback
+
 ```solidity
 function beginUnstake(uint256 amountWei) external onlyRouter {
     require(address(this).balance >= amountWei, "INSUFFICIENT_BALANCE");
@@ -81,6 +87,7 @@ function beginUnstake(uint256 amountWei) external onlyRouter {
 ```
 
 #### C. Added Reward Pool Funding
+
 ```solidity
 /// @notice Fund reward pool (owner deposits BNB for rewards)
 function fundRewards() external payable onlyOwner {
@@ -98,7 +105,9 @@ Added automatic reward pool funding on deployment:
 ```javascript
 // Fund adapter with reward pool
 console.log(`\nFunding adapter with ${REWARD_POOL_BNB} BNB for rewards...`);
-const fundTx = await adapter.fundRewards({ value: hre.ethers.parseEther(REWARD_POOL_BNB) });
+const fundTx = await adapter.fundRewards({
+  value: hre.ethers.parseEther(REWARD_POOL_BNB),
+});
 await fundTx.wait();
 console.log(`✅ Funded adapter with ${REWARD_POOL_BNB} BNB`);
 ```
@@ -108,6 +117,7 @@ console.log(`✅ Funded adapter with ${REWARD_POOL_BNB} BNB`);
 **File:** `web3/scripts/configure-router.js`
 
 Automates:
+
 - Allowing new adapter on router
 - Setting new adapter as active
 - Verifying configuration
@@ -117,15 +127,18 @@ Automates:
 **Network:** BSC Testnet (Chain ID 97)
 
 **New Contracts:**
+
 - SimpleMockAdapter: `0xE62fcEDfE9f31d6B07B18f4cc62d2b6652E5E39C`
 - Router (unchanged): `0x8c1Fef12BaFC06077C06486bF4c3E0c9c1F78e78`
 
 **Configuration:**
+
 - Adapter funded with 0.1 BNB for rewards
 - Router configured to use new adapter
 - Adapter balance: 0.1 BNB
 
 **Updated Files:**
+
 - `.env.local` - New adapter address
 - `src/contracts/abi/SimpleMockAdapter.ts` - Updated ABI with `fundRewards()`
 - `web3/abi/SimpleMockAdapter.abi.json` - Exported ABI
@@ -164,11 +177,13 @@ uint256 rewards = (totalStaked * ANNUAL_RATE_BP * timeElapsed) / (BP_DIVISOR * S
 ```
 
 Where:
+
 - `ANNUAL_RATE_BP = 1000` (10% APY)
 - `BP_DIVISOR = 10000` (basis points divisor)
 - `SECONDS_PER_YEAR = 31536000` (365 days)
 
 **Example:**
+
 - Staked: 0.1 BNB
 - Time: 600 seconds (10 minutes)
 - Rewards: `(0.1 * 1000 * 600) / (10000 * 31536000) = 0.00000190258 BNB`
@@ -176,6 +191,7 @@ Where:
 ### Flow Diagrams
 
 #### Claim Rewards Flow (After Fix)
+
 ```
 User → Router.harvest()
   → Adapter.harvest()
@@ -190,6 +206,7 @@ User → Router.claim()
 ```
 
 #### Withdrawal Flow (After Fix)
+
 ```
 User → Router.requestUnstake(shares)
   → Burn shares, queue withdrawal
@@ -204,18 +221,22 @@ User → Router.withdrawUnbonded(index)
 ## Files Changed
 
 ### Smart Contracts
+
 - `web3/contracts/SimpleMockAdapter.sol` - Fixed harvest() and beginUnstake(), added fundRewards()
 
 ### Scripts
+
 - `web3/scripts/deploy-simple-mock.js` - Added reward pool funding
 - `web3/scripts/configure-router.js` - New script for router configuration
 - `web3/scripts/export-abi.js` - Export both Router and Adapter ABIs
 
 ### Frontend
+
 - `.env.local` - Updated adapter address
 - `src/contracts/abi/SimpleMockAdapter.ts` - Updated ABI
 
 ### Artifacts
+
 - `web3/abi/SimpleMockAdapter.abi.json` - New ABI export
 - `web3/abi/SimpleMockAdapter.bytecode.json` - New bytecode export
 
@@ -232,6 +253,7 @@ npx hardhat run scripts/verify-router-config.js --network bscTestnet
 ```
 
 Or on BSCScan Testnet:
+
 - SimpleMockAdapter: https://testnet.bscscan.com/address/0xE62fcEDfE9f31d6B07B18f4cc62d2b6652E5E39C
 - Check `getBalance()` returns 0.1 BNB
 - Check `router()` returns correct router address
@@ -239,11 +261,13 @@ Or on BSCScan Testnet:
 ## Next Steps
 
 1. **Test thoroughly** on testnet:
+
    - Multiple stake/unstake/claim cycles
    - Different amounts
    - Edge cases (small amounts, long wait times)
 
 2. **Monitor adapter balance**:
+
    - 0.1 BNB reward pool will deplete over time
    - Use `fundRewards()` to add more BNB when needed
 
@@ -260,6 +284,7 @@ Or on BSCScan Testnet:
 ## Status
 
 ✅ **Both issues fixed and deployed to testnet**
+
 - Claim rewards now properly transfers BNB to user wallet
 - Withdrawal after unstake now properly returns principal
 - Adapter funded with 0.1 BNB reward pool

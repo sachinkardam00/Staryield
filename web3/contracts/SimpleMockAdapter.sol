@@ -76,8 +76,11 @@ contract SimpleMockAdapter is IStakingAdapterBNB {
 
         if (pendingRewards > 0) {
             // Check if we have enough balance for rewards
-            require(address(this).balance >= pendingRewards, "INSUFFICIENT_BALANCE_FOR_REWARDS");
-            
+            require(
+                address(this).balance >= pendingRewards,
+                "INSUFFICIENT_BALANCE_FOR_REWARDS"
+            );
+
             lastHarvestTime = block.timestamp;
 
             (bool success, ) = router.call{value: pendingRewards}(

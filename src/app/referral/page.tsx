@@ -1,13 +1,59 @@
 'use client';
 
 import { CustomConnectButton } from '@/components/UI/CustomConnectButton';
-import { useAccount } from 'wagmi';
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { ReferralSystemABI } from '@/contracts/abi/ReferralSystem';
+import { getReferralAddress } from '@/contracts/addresses';
+import { formatEther } from 'viem';
 
 export default function ReferralPage() {
   const { address, isConnected } = useAccount();
   const [referralLink, setReferralLink] = useState('https://staryield.com/refer/0x000000000000000000000000');
+  const [isClaiming, setIsClaiming] = useState(false);
+
+  const referralAddress = getReferralAddress();
+
+  // Read user data from contract
+  const { data: userData, refetch: refetchUserData } = useReadContract({
+    address: referralAddress,
+    abi: ReferralSystemABI,
+    functionName: 'users',
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address && !!referralAddress,
+    },
+  });
+
+  // Get tier name
+  const { data: tierName } = useReadContract({
+    address: referralAddress,
+    abi: ReferralSystemABI,
+    functionName: 'getTierName',
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address && !!referralAddress,
+    },
+  });
+
+  // Get commission rate
+  const { data: commissionRate } = useReadContract({
+    address: referralAddress,
+    abi: ReferralSystemABI,
+    functionName: 'getCommissionRate',
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address && !!referralAddress,
+    },
+  });
+
+  // Claim commission hook
+  const { data: claimHash, writeContract: claimCommission, isPending: isClaimPending } = useWriteContract();
+
+  const { isLoading: isClaimConfirming, isSuccess: isClaimSuccess } = useWaitForTransactionReceipt({
+    hash: claimHash,
+  });
 
   useEffect(() => {
     // Add admin class to body
@@ -15,9 +61,9 @@ export default function ReferralPage() {
     
     // Update referral link when wallet connects
     if (isConnected && address) {
-      setReferralLink(`https://staryield.com/refer/${address}`);
+      setReferralLink(`${window.location.origin}?ref=${address}`);
     } else {
-      setReferralLink('https://staryield.com/refer/0x000000000000000000000000');
+      setReferralLink(`${window.location.origin}?ref=0x000000000000000000000000`);
     }
     
     // Cleanup function to remove class when component unmounts
@@ -26,6 +72,27 @@ export default function ReferralPage() {
     };
   }, [isConnected, address]);
 
+  // Handle claim success
+  useEffect(() => {
+    if (isClaimSuccess) {
+      setIsClaiming(false);
+      refetchUserData();
+      alert('Commission claimed successfully!');
+    }
+  }, [isClaimSuccess, refetchUserData]);
+
+  // Parse user data
+  const referralCount = userData ? Number(userData[2]) : 0;
+  const totalCommission = userData ? userData[3] : BigInt(0);
+  const claimableCommission = userData ? userData[4] : BigInt(0);
+  const userTier = userData ? Number(userData[5]) : 0;
+  const xpPoints = userData ? Number(userData[6]) : 0;
+
+  // Calculate withdrawn commission
+  const withdrawnCommission = useMemo(() => {
+    return totalCommission - claimableCommission;
+  }, [totalCommission, claimableCommission]);
+
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(referralLink);
@@ -33,6 +100,38 @@ export default function ReferralPage() {
     } catch (err) {
       console.error('Failed to copy: ', err);
     }
+  };
+
+  const handleClaimCommission = async () => {
+    if (!referralAddress || !address) {
+      alert('Please connect your wallet');
+      return;
+    }
+
+    if (claimableCommission === BigInt(0)) {
+      alert('No commission to claim');
+      return;
+    }
+
+    try {
+      setIsClaiming(true);
+      claimCommission({
+        address: referralAddress,
+        abi: ReferralSystemABI,
+        functionName: 'claimCommission',
+      });
+    } catch (err) {
+      console.error('Failed to claim: ', err);
+      setIsClaiming(false);
+      alert('Failed to claim commission');
+    }
+  };
+
+  // Determine tier status for UI
+  const getTierStatus = (tier: number) => {
+    if (tier < userTier) return 'finished';
+    if (tier === userTier) return 'active';
+    return 'locked';
   };
 
   return (
@@ -148,19 +247,19 @@ export default function ReferralPage() {
                 <ul className="top-stats-ul clearfix">
                   <li>
                     <h4>Your Referrals</h4>
-                    <h3>78</h3>
+                    <h3>{referralCount}</h3>
                   </li>
                   <li>
                     <h4>Total Commision</h4>
-                    <h3>BNB <span>0.587</span></h3>
+                    <h3>BNB <span>{parseFloat(formatEther(totalCommission)).toFixed(4)}</span></h3>
                   </li>
                   <li>
                     <h4>Withdrawn Commission</h4>
-                    <h3>BNB <span>0.145</span></h3>
+                    <h3>BNB <span>{parseFloat(formatEther(withdrawnCommission)).toFixed(4)}</span></h3>
                   </li>
                   <li>
                     <h4>Earned XPs</h4>
-                    <h3>1000 <span>XP</span></h3>
+                    <h3>{xpPoints} <span>XP</span></h3>
                   </li>
                 </ul>
               </div>
@@ -173,9 +272,13 @@ export default function ReferralPage() {
                   </div>
                   <div className="claim-box-details">
                     <h4>Unclaimed Commission</h4>
-                    <h3><b className="ticker">BNB</b> <span>0.5</span></h3>
-                    <button className="btn btn-blue">
-                      <i className="fa-regular fa-hand-pointer"></i> Claim
+                    <h3><b className="ticker">BNB</b> <span>{parseFloat(formatEther(claimableCommission)).toFixed(4)}</span></h3>
+                    <button 
+                      className="btn btn-blue" 
+                      onClick={handleClaimCommission}
+                      disabled={!isConnected || claimableCommission === BigInt(0) || isClaimPending || isClaimConfirming || isClaiming}
+                    >
+                      <i className="fa-regular fa-hand-pointer"></i> {isClaimPending || isClaimConfirming || isClaiming ? 'Claiming...' : 'Claim'}
                     </button>
                   </div>
                 </div>
@@ -208,7 +311,7 @@ export default function ReferralPage() {
                   </div>
                   <div className="claim-box-details">
                     <h4>Current Level</h4>
-                    <h3><b className="ticker">Bronze Tier</b></h3>
+                    <h3><b className="ticker">{tierName || 'Starter'} Tier</b></h3>
                   </div>
                 </div>
               </div>
@@ -221,61 +324,71 @@ export default function ReferralPage() {
         <div className="container">
           <ul className="level-list clearfix">
             <li>
-              <div className="level-box finished">
+              <div className={`level-box ${getTierStatus(0)}`}>
                 <h3>5<span>%</span><b>Commission</b></h3>
                 <div className="turnover">1-10 Referrals</div>
                 <div className="level">Starter</div>
                 <div className="ref-status">
-                  <div className="finished-badge">
-                    <i className="fa-regular fa-circle-check"></i> Done
+                  <div className={`finished-badge ${getTierStatus(0)}`}>
+                    {getTierStatus(0) === 'finished' && <><i className="fa-regular fa-circle-check"></i> Done</>}
+                    {getTierStatus(0) === 'active' && <><i className="fa-regular fa-clock"></i> Current</>}
+                    {getTierStatus(0) === 'locked' && <><i className="fa-solid fa-lock"></i> Locked</>}
                   </div>
                 </div>
               </div>
             </li>
             <li>
-              <div className="level-box active">
+              <div className={`level-box ${getTierStatus(1)}`}>
                 <h3>7<span>%</span><b>Commission</b></h3>
                 <div className="turnover">11-25 Referrals</div>
                 <div className="level bronze">Bronze</div>
                 <div className="ref-status">
-                  <div className="finished-badge active">
-                    <i className="fa-regular fa-clock"></i> Current
+                  <div className={`finished-badge ${getTierStatus(1)}`}>
+                    {getTierStatus(1) === 'finished' && <><i className="fa-regular fa-circle-check"></i> Done</>}
+                    {getTierStatus(1) === 'active' && <><i className="fa-regular fa-clock"></i> Current</>}
+                    {getTierStatus(1) === 'locked' && <><i className="fa-solid fa-lock"></i> Locked</>}
                   </div>
                 </div>
               </div>
             </li>
             <li>
-              <div className="level-box locked">
+              <div className={`level-box ${getTierStatus(2)}`}>
                 <h3>10<span>%</span><b>Commission</b></h3>
                 <div className="turnover">26-50 Referrals</div>
                 <div className="level silver">Silver</div>
                 <div className="ref-status">
-                  <div className="finished-badge locked">
-                    <i className="fa-solid fa-lock"></i> Locked
+                  <div className={`finished-badge ${getTierStatus(2)}`}>
+                    {getTierStatus(2) === 'finished' && <><i className="fa-regular fa-circle-check"></i> Done</>}
+                    {getTierStatus(2) === 'active' && <><i className="fa-regular fa-clock"></i> Current</>}
+                    {getTierStatus(2) === 'locked' && <><i className="fa-solid fa-lock"></i> Locked</>}
                   </div>
                 </div>
               </div>
             </li>
             <li>
-              <div className="level-box locked">
+              <div className={`level-box ${getTierStatus(3)}`}>
                 <h3>12<span>%</span><b>Commission</b></h3>
                 <div className="turnover">51-100 Referrals</div>
                 <div className="level gold">Gold</div>
                 <div className="ref-status">
-                  <div className="finished-badge locked">
-                    <i className="fa-solid fa-lock"></i> Locked
+                  <div className={`finished-badge ${getTierStatus(3)}`}>
+                    {getTierStatus(3) === 'finished' && <><i className="fa-regular fa-circle-check"></i> Done</>}
+                    {getTierStatus(3) === 'active' && <><i className="fa-regular fa-clock"></i> Current</>}
+                    {getTierStatus(3) === 'locked' && <><i className="fa-solid fa-lock"></i> Locked</>}
                   </div>
                 </div>
               </div>
             </li>
             <li>
-              <div className="level-box locked">
+              <div className={`level-box ${getTierStatus(4)}`}>
                 <h3>15<span>%</span><b>Commission</b></h3>
                 <div className="turnover">100+ Referrals</div>
                 <div className="level platinum">Platinum</div>
                 <div className="ref-status">
-                  <div className="finished-badge locked">
-                    <i className="fa-solid fa-lock"></i> Locked
+                  <div className={`finished-badge ${getTierStatus(4)}`}>
+                    {getTierStatus(4) === 'finished' && <><i className="fa-regular fa-circle-check"></i> Done</>}
+                    {getTierStatus(4) === 'active' && <><i className="fa-regular fa-clock"></i> Current</>}
+                    {getTierStatus(4) === 'locked' && <><i className="fa-solid fa-lock"></i> Locked</>}
                   </div>
                 </div>
               </div>

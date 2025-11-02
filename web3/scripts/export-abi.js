@@ -11,6 +11,14 @@ const CONTRACTS = [
   {
     name: 'SimpleMockAdapter',
     artifact: path.join(__dirname, '..', 'artifacts', 'contracts', 'SimpleMockAdapter.sol', 'SimpleMockAdapter.json')
+  },
+  {
+    name: 'ReferralSystem',
+    artifact: path.join(__dirname, '..', 'artifacts', 'contracts', 'ReferralSystem.sol', 'ReferralSystem.json')
+  },
+  {
+    name: 'LoyaltyPoints',
+    artifact: path.join(__dirname, '..', 'artifacts', 'contracts', 'LoyaltyPoints.sol', 'LoyaltyPoints.json')
   }
 ];
 
