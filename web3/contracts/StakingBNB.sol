@@ -350,6 +350,14 @@ contract StakingRouterBNB is Ownable, PausableCore, ReentrancyGuard {
         return unbondQueue.length;
     }
 
+    /// @notice Emergency withdraw excess BNB (owner only)
+    /// @dev Only withdraw excess BNB that is not allocated to users
+    function emergencyWithdrawBNB(uint256 amount) external onlyOwner nonReentrant {
+        require(address(this).balance >= amount, "INSUFFICIENT_BALANCE");
+        (bool ok, ) = payable(owner).call{value: amount}("");
+        if (!ok) revert NativeTransferFailed();
+    }
+
     // Accept BNB (rewards or undelegations)
     receive() external payable {}
 }
