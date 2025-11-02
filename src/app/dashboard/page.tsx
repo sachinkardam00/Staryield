@@ -348,45 +348,76 @@ export default function DashboardPage() {
     }
     
     try {
-      // First, harvest to generate rewards from the adapter
+      // Check if there are rewards to claim
+      const adapterAddress = process.env.NEXT_PUBLIC_ADAPTER_ADDRESS as `0x${string}`;
+      
+      console.log('Checking pending rewards...');
+      console.log('Router pending:', pendingRewards?.toString());
+      console.log('Adapter pending:', adapterPendingRewards?.toString());
+      
+      if (!adapterPendingRewards || adapterPendingRewards === BigInt(0)) {
+        alert('No rewards to harvest from adapter yet. Please wait for rewards to accumulate.');
+        return;
+      }
+      
+      // Step 1: Harvest rewards from adapter
       console.log('Step 1: Harvesting rewards from adapter...');
-      await writeContractAsync({
+      const harvestTx = await writeContractAsync({
         abi: STAKING_ROUTER_BNB_ABI,
         address: routerAddress,
         functionName: 'harvest',
         args: [],
       });
       
-      // Wait for harvest to complete
+      console.log('Harvest transaction submitted:', harvestTx);
+      alert('Step 1/2: Harvest transaction submitted! Waiting for confirmation...');
+      
+      // Wait for harvest confirmation (3 seconds)
       await new Promise(resolve => setTimeout(resolve, 3000));
       
-      // Refetch pending rewards
-      refetchRewards();
+      // Refetch to get updated pendingRewards
+      await refetchRewards();
+      await refetchAdapterRewards();
       
-      // Wait a bit more
+      // Wait a bit to ensure state is updated
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Then claim the rewards
-      console.log('Step 2: Claiming rewards...');
-      await writeContractAsync({
+      // Step 2: Claim the harvested rewards
+      console.log('Step 2: Claiming harvested rewards...');
+      const claimTx = await writeContractAsync({
         abi: STAKING_ROUTER_BNB_ABI,
         address: routerAddress,
         functionName: 'claim',
         args: [],
       });
       
-      alert('Rewards claimed successfully! Check your wallet balance.');
+      console.log('Claim transaction submitted:', claimTx);
+      alert('Step 2/2: Claim transaction submitted! Your rewards are being transferred to your wallet...');
       
-      // Refresh data
-      setTimeout(() => {
-        refetchRewards();
-      }, 2000);
+      // Wait for claim confirmation and refresh all data
+      setTimeout(async () => {
+        await refetchRewards();
+        await refetchAdapterRewards();
+        alert('✅ Rewards claimed successfully! Check your wallet balance. The page will refresh in a moment.');
+        
+        // Force page reload to show updated balance
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      }, 3000);
+      
     } catch (e: any) {
       console.error('Claim error:', e);
       const errorMsg = e?.shortMessage || e?.message || 'Failed to claim';
-      alert(errorMsg);
+      
+      // Check if it's a user rejection
+      if (errorMsg.includes('User rejected') || errorMsg.includes('user rejected')) {
+        alert('Transaction cancelled by user');
+      } else {
+        alert('Error claiming rewards: ' + errorMsg + '\n\nPlease try again or check if you have pending rewards to claim.');
+      }
     }
-  }, [isConnected, routerAddress, handleHarvest, writeContractAsync, refetchRewards]);
+  }, [isConnected, routerAddress, pendingRewards, adapterPendingRewards, writeContractAsync, refetchRewards, refetchAdapterRewards]);
 
   const tierValues = useCallback((factor: number) => {
     if (!apyData) return { apy: undefined, apr: undefined, daily: undefined } as {
