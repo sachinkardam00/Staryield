@@ -1,12 +1,13 @@
 'use client';
 
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { memo } from 'react';
 
 interface CustomConnectButtonProps {
   className?: string;
 }
 
-export const CustomConnectButton = ({ className = "btn btn-green" }: CustomConnectButtonProps) => {
+const CustomConnectButtonComponent = ({ className = "btn btn-green" }: CustomConnectButtonProps) => {
   return (
     <ConnectButton.Custom>
       {({
@@ -75,3 +76,5 @@ export const CustomConnectButton = ({ className = "btn btn-green" }: CustomConne
     </ConnectButton.Custom>
   );
 };
+
+export const CustomConnectButton = memo(CustomConnectButtonComponent);

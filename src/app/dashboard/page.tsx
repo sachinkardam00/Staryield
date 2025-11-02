@@ -9,7 +9,7 @@ import { STAKING_ROUTER_BNB_ABI } from '@/contracts/abi/StakingRouterBNB';
 import { SIMPLE_MOCK_ADAPTER_ABI } from '@/contracts/abi/SimpleMockAdapter';
 import { getRouterAddress } from '@/contracts/addresses';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 
 export default function DashboardPage() {
   const { address, isConnected } = useAccount();
@@ -17,7 +17,7 @@ export default function DashboardPage() {
     address: address,
   });
   const [activeTab, setActiveTab] = useState('tab1');
-  const routerAddress = getRouterAddress();
+  const routerAddress = useMemo(() => getRouterAddress(), []);
 
   // Read user's staked shares
   const { data: userShares, refetch: refetchShares } = useReadContract({
@@ -65,20 +65,26 @@ export default function DashboardPage() {
     }
   });
 
-  // Total pending rewards = router pending + adapter pending
-  const totalPendingRewards = (pendingRewards || BigInt(0)) + (adapterPendingRewards || BigInt(0));
+  // Total pending rewards = router pending + adapter pending (memoized)
+  const totalPendingRewards = useMemo(() => 
+    (pendingRewards || BigInt(0)) + (adapterPendingRewards || BigInt(0)),
+    [pendingRewards, adapterPendingRewards]
+  );
 
-  // Calculate user's staked BNB amount
-  const userStakedBNB = userShares && totalPrincipal && totalShares && totalShares > BigInt(0)
-    ? (userShares * totalPrincipal) / totalShares
-    : BigInt(0);
-  // Config from env (build-time). Safe defaults if not provided.
-  const REFRESH_MS = Number(process.env.NEXT_PUBLIC_APY_REFRESH_MS ?? '25000');
-  const [F_COMET, F_METEOR, F_SUPERNOVA] = (() => {
+  // Calculate user's staked BNB amount (memoized)
+  const userStakedBNB = useMemo(() => 
+    userShares && totalPrincipal && totalShares && totalShares > BigInt(0)
+      ? (userShares * totalPrincipal) / totalShares
+      : BigInt(0),
+    [userShares, totalPrincipal, totalShares]
+  );
+  // Config from env (build-time, memoized). Safe defaults if not provided.
+  const REFRESH_MS = useMemo(() => Number(process.env.NEXT_PUBLIC_APY_REFRESH_MS ?? '25000'), []);
+  const [F_COMET, F_METEOR, F_SUPERNOVA] = useMemo(() => {
     const raw = (process.env.NEXT_PUBLIC_TIER_FACTORS ?? '0.8,1.2,1.8') as string;
     const parts = raw.split(',').map((s) => Number(s.trim())).filter((n) => isFinite(n) && n > 0);
     return [parts[0] ?? 0.8, parts[1] ?? 1.2, parts[2] ?? 1.8];
-  })();
+  }, []);
   const { data: apyData } = useAPY({ tokenSymbol: 'BNB', refetchInterval: REFRESH_MS });
 
   useEffect(() => {
@@ -141,11 +147,11 @@ export default function DashboardPage() {
     return v;
   };
 
-  const handleApprove = () => {
+  const handleApprove = useCallback(() => {
     alert('Approval not required for native BNB.');
-  };
+  }, []);
 
-  const handleStake = async () => {
+  const handleStake = useCallback(async () => {
     if (!isConnected) {
       alert('Please connect your wallet first');
       return;
@@ -187,9 +193,9 @@ export default function DashboardPage() {
       console.error(e);
       alert(e?.shortMessage || e?.message || 'Failed to stake');
     }
-  };
+  }, [isConnected, routerAddress, writeContractAsync, refetchShares, refetchRewards, getActiveInputValue]);
 
-  const handleUnstake = async () => {
+  const handleUnstake = useCallback(async () => {
     if (!isConnected) {
       alert('Please connect your wallet first');
       return;
@@ -274,9 +280,9 @@ export default function DashboardPage() {
       const errorMsg = e?.shortMessage || e?.message || JSON.stringify(e);
       alert('Failed to unstake: ' + errorMsg);
     }
-  };
+  }, [isConnected, routerAddress, userShares, writeContractAsync, refetchShares]);
 
-  const handleWithdraw = async () => {
+  const handleWithdraw = useCallback(async () => {
     if (!isConnected) {
       alert('Please connect your wallet first');
       return;
@@ -310,9 +316,9 @@ export default function DashboardPage() {
       const errorMsg = e?.shortMessage || e?.message || JSON.stringify(e);
       alert('Failed to withdraw: ' + errorMsg);
     }
-  };
+  }, [isConnected, routerAddress, writeContractAsync, refetchShares]);
 
-  const handleHarvest = async () => {
+  const handleHarvest = useCallback(async () => {
     if (!isConnected || !routerAddress) return;
     
     try {
@@ -329,9 +335,9 @@ export default function DashboardPage() {
       console.error('Harvest error:', e);
       return false;
     }
-  };
+  }, [isConnected, routerAddress, writeContractAsync]);
 
-  const handleClaim = async () => {
+  const handleClaim = useCallback(async () => {
     if (!isConnected) {
       alert('Please connect your wallet first');
       return;
@@ -380,8 +386,9 @@ export default function DashboardPage() {
       const errorMsg = e?.shortMessage || e?.message || 'Failed to claim';
       alert(errorMsg);
     }
-  };
-  const tierValues = (factor: number) => {
+  }, [isConnected, routerAddress, handleHarvest, writeContractAsync, refetchRewards]);
+
+  const tierValues = useCallback((factor: number) => {
     if (!apyData) return { apy: undefined, apr: undefined, daily: undefined } as {
       apy: number | undefined; apr: number | undefined; daily: number | undefined;
     };
@@ -389,7 +396,7 @@ export default function DashboardPage() {
     const apy = apyData.apy * factor;
     const daily = apr / 365;
     return { apy, apr, daily };
-  };
+  }, [apyData]);
 
   return (
     <>

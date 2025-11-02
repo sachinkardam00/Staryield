@@ -5,10 +5,17 @@ const nextConfig = {
   // External packages for server components
   serverExternalPackages: ['wagmi', 'viem'],
   
+  // Performance optimizations
+  swcMinify: true,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+  
   // Turbopack optimizations
   experimental: {
     optimizeCss: true,
     esmExternals: true,
+    optimizePackageImports: ['@rainbow-me/rainbowkit', 'wagmi', 'viem'],
     turbo: {
       loaders: {
         '.svg': ['@svgr/webpack'],

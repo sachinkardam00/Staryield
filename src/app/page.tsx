@@ -1,9 +1,15 @@
 'use client';
 
 import { CustomConnectButton } from '@/components/UI/CustomConnectButton';
-import { APYStats } from '@/components/Dashboard/APYStats';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useEffect } from 'react';
+
+// Lazy load APYStats component
+const APYStats = dynamic(() => import('@/components/Dashboard/APYStats').then(mod => ({ default: mod.APYStats })), {
+  loading: () => <div>Loading...</div>,
+  ssr: false
+});
 
 export default function HomePage() {
   useEffect(() => {
