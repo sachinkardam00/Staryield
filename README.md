@@ -9,7 +9,7 @@
 
 **Navigate the Financial Cosmos with StarYield Staking**
 
-[🚀 Live Demo](https://staryield.finance) • [📖 Documentation](#documentation) • [🎯 Features](#features) • [💻 Tech Stack](#tech-stack)
+[🚀 Live Demo]([https://staryield.finance](https://staryield-chi.vercel.app/)) • [📖 Documentation](#documentation) • [🎯 Features](#features) • [💻 Tech Stack](#tech-stack)
 
 </div>
 
