@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![StarYield Banner](https://img.shields.io/badge/StarYield-Staking%20Platform-blue?style=for-the-badge&logo=ethereum)
+![StarYield Banner]([https://img.shields.io/badge/StarYield-Staking%20Platform-blue?style=for-the-badge&logo=ethereum](https://staryield-chi.vercel.app/))
 [![BSC Testnet](https://img.shields.io/badge/BSC-Testnet-yellow?style=for-the-badge&logo=binance)](https://testnet.bscscan.com/)
 [![Next.js](https://img.shields.io/badge/Next.js-15.1.4-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
