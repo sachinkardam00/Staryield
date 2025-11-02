@@ -148,7 +148,7 @@ export default function DashboardPage() {
   });
 
   // Register referral hook
-  const { writeContract: registerReferral, isPending: isRegistering } = useWriteContract();
+  const { writeContract: registerReferral } = useWriteContract();
 
   // Capture referrer from URL
   useEffect(() => {
@@ -310,7 +310,7 @@ export default function DashboardPage() {
     
     try {
       setTxStatus('Sending transaction...');
-      const hash = await writeContractAsync({
+      await writeContractAsync({
         abi: StakingRouterBNBABI,
         address: routerAddress,
         functionName: 'depositBNB',
@@ -589,25 +589,6 @@ export default function DashboardPage() {
     }
   }, [isConnected, address, routerAddress, publicClient, writeContractAsync, refetchShares]);
 
-  const handleHarvest = useCallback(async () => {
-    if (!isConnected || !routerAddress) return;
-    
-    try {
-      console.log('Harvesting rewards...');
-      await writeContractAsync({
-        abi: StakingRouterBNBABI,
-        address: routerAddress,
-        functionName: 'harvest',
-        args: [],
-      });
-      console.log('Harvest successful');
-      return true;
-    } catch (e: any) {
-      console.error('Harvest error:', e);
-      return false;
-    }
-  }, [isConnected, routerAddress, writeContractAsync]);
-
   const handleClaim = useCallback(async () => {
     if (!isConnected) {
       alert('Please connect your wallet first');
@@ -623,8 +604,6 @@ export default function DashboardPage() {
     
     try {
       // Check if there are rewards to claim
-      const adapterAddress = process.env.NEXT_PUBLIC_ADAPTER_ADDRESS as `0x${string}`;
-      
       console.log('Checking pending rewards...');
       console.log('Router pending:', pendingRewards?.toString());
       console.log('Adapter pending:', adapterPendingRewards?.toString());

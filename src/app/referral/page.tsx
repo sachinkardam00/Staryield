@@ -37,17 +37,6 @@ export default function ReferralPage() {
     },
   });
 
-  // Get commission rate
-  const { data: commissionRate } = useReadContract({
-    address: referralAddress,
-    abi: ReferralSystemABI,
-    functionName: 'getCommissionRate',
-    args: address ? [address] : undefined,
-    query: {
-      enabled: !!address && !!referralAddress,
-    },
-  });
-
   // Claim commission hook
   const { data: claimHash, writeContract: claimCommission, isPending: isClaimPending } = useWriteContract();
 

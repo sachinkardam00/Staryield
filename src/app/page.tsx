@@ -5,6 +5,8 @@ import { APYStats } from '@/components/Dashboard/APYStats';
 import Link from 'next/link';
 import { useEffect } from 'react';
 
+export const dynamic = 'force-dynamic';
+
 export default function HomePage() {
   useEffect(() => {
     let animationStarted = false;

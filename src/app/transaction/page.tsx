@@ -2,9 +2,8 @@
 
 import { CustomConnectButton } from '@/components/UI/CustomConnectButton';
 import Link from 'next/link';
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
-import { formatEther } from 'viem';
 import { getRouterAddress } from '@/contracts/addresses';
 
 interface Transaction {
@@ -114,12 +113,6 @@ export default function TransactionPage() {
 
     fetchTransactions();
   }, [address, isConnected]);
-
-  // Memoize filtered transactions to avoid recalculation on every render
-  const filteredTransactions = useMemo(() => {
-    if (selectedFilter === 'all') return transactions;
-    return transactions.filter(tx => tx.type === selectedFilter);
-  }, [transactions, selectedFilter]);
 
   return (
     <>

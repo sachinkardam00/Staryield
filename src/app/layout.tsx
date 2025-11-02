@@ -11,6 +11,8 @@ export const metadata: Metadata = {
   description: "Navigate the Financial Cosmos with StarYield Staking",
 };
 
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({
   children,
 }: Readonly<{

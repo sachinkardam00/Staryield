@@ -1,15 +1,13 @@
 'use client';
 
 import { useAPY } from '@/hooks/useAPY';
-import { useAccount } from 'wagmi';
 
 interface PortfolioOverviewProps {
   className?: string;
 }
 
 export function PortfolioOverview({ className = '' }: PortfolioOverviewProps) {
-  const { address } = useAccount();
-  const { data: apyData } = useAPY({ tokenSymbol: 'BNB', refetchInterval: 25000 });
+  useAPY({ tokenSymbol: 'BNB', refetchInterval: 25000 });
 
   // Mock portfolio data - replace with real contract calls
   const portfolioData = {
